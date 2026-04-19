@@ -1,145 +1,137 @@
-# =============================================================================
-# AgentAI - Lib Tag Manager (PL <-> EN)
-# =============================================================================
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# ==========================================================================================
+#   PROJEKT:            AgentAI
+#   MODUŁ:              AgentAI/src/agentai/lib/tag_manager.py
+#
+#   WERSJA:             0.3 [04-19]
+#   Data utworzenia:    2026 kwiecień 19, 21:15
+#
+#   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
+#   LICENCJA:           MIT
+#
+#   AUTOR:              PyGamiQ
+#   GITHUB:             https://github.com/PyGamiQ/agentai
+#   IDE:                PyCharm Python 3.14.2 <macOS ARM>
+# ==========================================================================================
+#   OPIS:
+#       Menadżer dwujęzycznej bazy pojęć. Obsługuje mapowanie terminów technicznych
+#       z polskiego na angielski i odwrotnie. Wykorzystuje Google Translator jako
+#       fallback w przypadku braku zdefiniowanego pojęcia w lokalnej bazie.
+#
+#   CHANGELOG:
+#       - 0.1: Podstawowe zarządzanie plikiem tags.txt.
+#       - 0.2: Integracja z deep-translator (fallback).
+#       - 0.3 (19 kwi 2026): Dodanie zabezpieczeń zapisu i automatycznego sortowania.
+# ==========================================================================================
+
 import os
 import sys
 
 from deep_translator import GoogleTranslator
 
-# Definiujemy ścieżkę bezwzględną względem głównego folderu projektu
+# Ścieżka relatywna do głównego folderu projektu
 BASE_DIR = os.getcwd()
 TAGS_FILE = os.path.join(BASE_DIR, 'data/tags.txt')
 
 
 def load_tags():
-	"""Wczytuje tagi, tylko jeśli plik istnieje i nie jest pusty."""
+	"""Wczytuje pary pojęć z pliku tekstowego."""
 	if not os.path.exists(TAGS_FILE):
 		return []
 	try:
 		with open(TAGS_FILE, encoding='utf-8') as f:
-			lines = [l.strip() for l in f.readlines() if ':' in l]
-			return lines
+			return [l.strip() for l in f.readlines() if ':' in l]
 	except Exception as e:
-		print(f'⚠️ Błąd podczas wczytywania pliku tagów: {e}')
+		print(f'⚠️ Błąd odczytu bazy pojęć: {e}')
 		return []
 
 
 def save_tags(tags):
-	"""Zapisuje tagi z potrójnym zabezpieczeniem."""
-	# BEZPIECZNIK 1: Nigdy nie nadpisuj pliku całkowitą pustką
+	"""Zapisuje tagi z zabezpieczeniem przed pustym plikiem."""
 	if not tags:
-		print('⚠️ OSTRZEŻENIE: Próba zapisu pustej listy tagów. Operacja przerwana, by chronić bazę.')
+		print('⚠️ Próba zapisu pustej bazy pojęć zablokowana!')
 		return
 
 	os.makedirs(os.path.dirname(TAGS_FILE), exist_ok=True)
-
-	# Sortowanie i usuwanie duplikatów przed zapisem
-	unique_tags = sorted(list(set(tags)))
+	unique_tags = sorted(list(set(tags)))  # Sortowanie alfabetyczne
 
 	try:
 		with open(TAGS_FILE, 'w', encoding='utf-8') as f:
-			for t in unique_tags:
-				f.write(f'{t}\n')
-		print(f'✅ Baza tagów zaktualizowana ({len(unique_tags)} pojęć).')
+			f.write('\n'.join(unique_tags) + '\n')
+		print(f'✅ Baza pojęć zaktualizowana ({len(unique_tags)} wpisów).')
 	except Exception as e:
-		print(f'❌ Krytyczny błąd zapisu pliku: {e}')
+		print(f'❌ Błąd zapisu bazy pojęć: {e}')
 
 
 def get_translation(text, target_lang='en'):
-	source = 'pl' if target_lang == 'en' else 'en'
+	"""Tłumaczy tekst korzystając z bazy lokalnej lub Google Translatora."""
+	tags = load_tags()
+	mapping = {}
+
+	for line in tags:
+		if ':' in line:
+			pl, en = line.split(':', 1)
+			mapping[pl.strip().lower()] = en.strip().lower()
+			mapping[en.strip().lower()] = pl.strip().lower()
+
+	clean_text = text.strip().lower()
+
+	# 1. Sprawdzenie w lokalnej bazie
+	if clean_text in mapping:
+		return mapping[clean_text]
+
+	# 2. Fallback: Google Translator
 	try:
-		return GoogleTranslator(source=source, target=target_lang).translate(text)
-	except Exception as e:
-		print(f'❌ Błąd tłumaczenia ({text}): {e}')
+		source = 'pl' if target_lang == 'en' else 'en'
+		translated = GoogleTranslator(source=source, target=target_lang).translate(text)
+		return translated
+	except Exception:
 		return text
 
 
 def process_add(input_str):
+	"""Interaktywne dodawanie nowych pojęć."""
 	current_tags = load_tags()
-	# Zapamiętujemy początkową liczbę tagów, by wiedzieć, czy coś przybyło
-	initial_count = len(current_tags)
+	new_pairs = input_str.split(',')
 
-	parts = [p.strip() for p in input_str.split(',')]
+	for pair in new_pairs:
+		if '=' in pair:
+			pl, en = pair.split('=')
+			entry = f'{pl.strip().lower()}:{en.strip().lower()}'
+			if entry not in current_tags:
+				current_tags.append(entry)
+				print(f'➕ Dodano: {pl} -> {en}')
 
-	global_en = parts[0].lower() == 'en'
-	if global_en:
-		parts = parts[1:]
-
-	for part in parts:
-		if not part:
-			continue
-		pl, en = None, None
-		manual_pair = False  # Flaga trybu Express
-
-		if '=' in part:
-			pl, en = part.split('=')
-			manual_pair = True
-		elif ':' in part:
-			pl, en = part.split(':')
-			manual_pair = True
-		elif global_en:
-			en = part
-			pl = get_translation(en, 'pl')
-		else:
-			pl = part
-			en = get_translation(pl, 'en')
-
-		# Jeśli to para ręczna (pl=en), dodaj od razu bez pytań
-		if manual_pair:
-			tag_entry = f'{pl.strip().lower()}:{en.strip().lower()}'
-			current_tags.append(tag_entry)
-			print(f'✅ Dodano (Express): {pl.strip()} <-> {en.strip()}')
-		else:
-			# Tryb interaktywny dla pojedynczych haseł
-			print(f'\n🤖 PROPOZYCJA: PL({pl}) <-> EN({en})')
-			choice = input('Zatwierdzić? [Y/n/edit]: ').lower()
-
-			if choice == 'edit':
-				pl = input(f'Nowy PL [{pl}]: ') or pl
-				en = input(f'Nowy EN [{en}]: ') or en
-				current_tags.append(f'{pl.strip().lower()}:{en.strip().lower()}')
-			elif choice != 'n':
-				current_tags.append(f'{pl.strip().lower()}:{en.strip().lower()}')
-
-	# BEZPIECZNIK 2: Zapisuj tylko, jeśli faktycznie coś się zmieniło/dodało
-	if len(current_tags) > initial_count:
-		save_tags(current_tags)
-	else:
-		print('\nℹ️ Nie dodano nowych pojęć. Plik nienaruszony.')
+	save_tags(current_tags)
 
 
 def process_remove(input_str):
+	"""Usuwanie pojęć z bazy."""
 	current_tags = load_tags()
-	if not current_tags:
-		print('⚠️ Plik tagów jest pusty, nie ma czego usuwać.')
-		return
+	to_remove = [r.strip().lower() for r in input_str.split(',')]
 
-	to_remove = [p.strip().lower() for p in input_str.split(',')]
-
-	# Tworzymy nową listę bez elementów pasujących do wzorca
-	new_tags = [line for line in current_tags if not any(r in line for r in to_remove)]
+	new_tags = [t for t in current_tags if not any(r in t for r in to_remove)]
 
 	if len(new_tags) < len(current_tags):
-		# BEZPIECZNIK 3: Jeśli usuwanie miałoby wyczyścić wszystko, zapytaj o potwierdzenie
-		if not new_tags:
-			confirm = input('⚠️ Ta operacja USUNIE WSZYSTKIE TAGI. Czy na pewno? [y/N]: ').lower()
-			if confirm != 'y':
-				print('❌ Operacja anulowana.')
-				return
-
 		save_tags(new_tags)
-		print(f'✅ Usunięto {len(current_tags) - len(new_tags)} tag(ów).')
+		print(f'🗑️ Usunięto {len(current_tags) - len(new_tags)} pojęć.')
 	else:
-		print('ℹ️ Nie znaleziono tagów pasujących do wzorca.')
+		print('ℹ️ Nie znaleziono pasujących pojęć do usunięcia.')
 
 
 if __name__ == '__main__':
-	if len(sys.argv) < 3:
-		print("Usage: python tag_manager.py [add|remove] 'content'")
+	if len(sys.argv) < 2:
+		print('Użycie: tag_manager.py [add|remove] "fraza1=fraza2,fraza3=fraza4"')
 		sys.exit(1)
 
-	cmd, val = sys.argv[1], sys.argv[2]
+	cmd = sys.argv[1].lower()
+	val = sys.argv[2] if len(sys.argv) > 2 else ''
+
 	if cmd == 'add':
 		process_add(val)
 	elif cmd == 'remove':
 		process_remove(val)
+	elif cmd == 'sort':
+		save_tags(load_tags())
