@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""Moduł generatora sesji dla systemu AgentAI."""
+
 # ==========================================================================================
 #   PROJEKT:            AgentAI
-#   MODUŁ:              AgentAI/src/agentai/main.py
+#   MODUŁ:              AgentAI/src/agentai/lib/auth_generator.py
 #
-#   WERSJA:             0.2 [04-19]
+#   WERSJA:             1.0 [04-19]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -16,51 +18,75 @@
 #   IDE:                PyCharm Python 3.14.2 <macOS ARM>
 # ==========================================================================================
 #   OPIS:
-#       Główny punkt wejścia systemu AgentAI. Odpowiada za weryfikację integralności
-#       bazy danych, sprawdzanie dostępności modeli AI oraz raportowanie
-#       bieżącego stanu wiedzy agenta.
+#       Generator sesji uwierzytelniającej. Pozwala użytkownikowi na manualne zalogowanie
+#       się do Medium i zapisanie sesji (ciasteczek), co omija zabezpieczenia Cloudflare.
 #
 #   CHANGELOG:
-#       - 0.1: Inicjalizacja punktu wejścia.
-#       - 0.2 (19 kwi 2026): Dodanie szczegółowych statystyk statusów (pending/processed).
+#       - 1.0 (19 IV 2026): Pełna stabilizacja, usunięcie zbędnych zależności i docstringi.
 # ==========================================================================================
 
-import sys
+import asyncio
+import os
+import shutil
 
-from agentai.core.database import AgentDatabase
+from playwright.async_api import ViewportSize, async_playwright
 
 
-def main():
-	print('\n' + '=' * 50)
-	print('🤖 AgentAI - SYSTEM STATUS CHECK')
-	print('=' * 50)
+async def save_medium_session():
+	"""Uruchamia przeglądarkę w trybie graficznym do manualnego zalogowania się.
 
-	try:
-		db = AgentDatabase()
+	    Funkcja czyści stare dane sesji, otwiera nowe okno przeglądarki z emulacją
+	użytkownika (User-Agent) i oczekuje, aż operator zamknie okno po zalogowaniu.
+	"""
+	user_data_dir = os.path.join(os.getcwd(), 'data/user_data_scraper')
 
-		# Pobieranie statystyk z bazy
-		total = db.conn.execute('SELECT count(*) FROM articles').fetchone()[0]
-		pending = db.conn.execute("SELECT count(*) FROM articles WHERE status = 'pending'").fetchone()[0]
-		processed = db.conn.execute("SELECT count(*) FROM articles WHERE status = 'processed'").fetchone()[0]
-		rejected = db.conn.execute("SELECT count(*) FROM articles WHERE status = 'rejected'").fetchone()[0]
+	if os.path.exists(user_data_dir):
+		print('🧹 Czyszczenie starej sesji...')
+		try:
+			shutil.rmtree(user_data_dir, ignore_errors=True)
+		except OSError as e:
+			print(f'⚠️ Błąd podczas usuwania katalogu sesji: {e}')
 
-		print('📊 OGÓLNE STATYSTYKI:')
-		print(f'   - Wszystkich rekordów: {total}')
-		print(f'   - Oczekujące na AI:    {pending} (pending)')
-		print(f'   - Przetworzone:        {processed} (processed)')
-		print(f'   - Odrzucone/Śmieci:    {rejected} (rejected)')
+	async with async_playwright() as p:
+		print('\n🚀 Uruchamiam instancję "Human-Like" pod kontrolą Agenta...')
 
-		print('-' * 50)
-		if pending > 0:
-			print(f"💡 Sugestia: Masz {pending} artykułów do przetworzenia. Uruchom 'make agent-process'.")
-		else:
-			print('✅ Baza jest zaktualizowana. Brak nowych zadań dla AI.')
-		print('🚀 System gotowy do pracy.\n')
+		user_agent = (
+			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+			'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+		)
 
-	except Exception as e:
-		print(f'❌ BŁĄD KRYTYCZNY INICJALIZACJI: {e}')
-		sys.exit(1)
+		my_viewport = ViewportSize(width=1280, height=900)
+
+		context = await p.chromium.launch_persistent_context(
+			user_data_dir,
+			headless=False,
+			user_agent=user_agent,
+			args=['--disable-blink-features=AutomationControlled'],
+			viewport=my_viewport,
+		)
+
+		page = context.pages[0] if context.pages else await context.new_page()
+
+		print('👉 Otwieram stronę logowania Medium...')
+		await page.goto('https://medium.com/m/signin')
+
+		print('\n' + '!' * 30)
+		print('INSTRUKCJA DLA OPERATORA:')
+		print('1. Rozwiąż Cloudflare, jeśli się pojawi.')
+		print('2. Zaloguj się na swoje konto Medium.')
+		print('3. Gdy zobaczysz swój profil, zamknij okno przeglądarki.')
+		print('!' * 30 + '\n')
+
+		while True:
+			try:
+				if not context.pages:
+					break
+				await asyncio.sleep(1)
+			except RuntimeError, Exception:
+				break
+
+		print('✅ Sesja została pomyślnie zapisana.')
 
 
 if __name__ == '__main__':
-	main()
+	asyncio.run(save_medium_session())
