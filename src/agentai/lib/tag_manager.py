@@ -54,7 +54,7 @@ def save_tags(tags):
 
 
 def get_translation(text, target_lang='en'):
-	"""Tłumaczy tekst korzystając z bazy lokalnej lub Google Translatora."""
+	"""Tłumaczy tekst, korzystając z bazy lokalnej lub Google Translatora."""
 	tags = load_tags()
 	mapping = {}
 
