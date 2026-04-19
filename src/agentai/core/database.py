@@ -8,13 +8,13 @@ import duckdb
 
 class AgentDatabase:
 	def __init__(self, db_path='data/agent_knowledge.db'):
-		# Upewnij się, że folder data istnieje
 		os.makedirs(os.path.dirname(db_path), exist_ok=True)
 		self.conn = duckdb.connect(db_path)
 		self._setup_tables()
+		self._migrate_tables()  # Automatyczne dodawanie nowych kolumn
 
 	def _setup_tables(self):
-		"""Inicjalizacja struktury tabel."""
+		"""Inicjalizacja podstawowej struktury tabel."""
 		self.conn.execute("""
             CREATE TABLE IF NOT EXISTS articles (
                 url VARCHAR PRIMARY KEY,
@@ -36,8 +36,25 @@ class AgentDatabase:
             )
         """)
 
+	def _migrate_tables(self):
+		"""Dodaje nowe kolumny, jeśli jeszcze nie istnieją (Bezpieczna Migracja)."""
+		# Pobieramy listę kolumn w tabeli articles
+		columns_info = self.conn.execute("PRAGMA table_info('articles')").fetchall()
+		column_names = [col[1] for col in columns_info]
+
+		# 1. Kolumna na polski tytuł
+		if 'title_pl' not in column_names:
+			print("🔧 Migracja: Dodawanie kolumny 'title_pl'...")
+			self.conn.execute('ALTER TABLE articles ADD COLUMN title_pl VARCHAR')
+
+		# 2. Kolumna na punktowe streszczenie po polsku
+		if 'summary_pl' not in column_names:
+			print("🔧 Migracja: Dodawanie kolumny 'summary_pl'...")
+			self.conn.execute('ALTER TABLE articles ADD COLUMN summary_pl TEXT')
+
 	def add_article(self, url, title, topic, priority, source='main'):
 		try:
+			# Używamy jawnie nazw kolumn, aby uniknąć błędów po migracji
 			self.conn.execute(
 				'INSERT INTO articles (url, title, topic, priority, status, source_account) '
 				"VALUES (?, ?, ?, ?, 'pending', ?)",
