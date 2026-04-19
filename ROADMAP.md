@@ -21,12 +21,18 @@
   - Implementacja pliku w Obsidianie jako "Single Source of Truth".
   - Definicja zasad nienaruszalnych (Anti-Hallucination Protocol).
 - [ ] **Inteligentna Pamięć (DuckDB)**:
-  - [ ] **Tabela `scan_history`**: Rejestr obsłużonych dat i tagów (Smart History).
+  - [x] **Tabela `scan_history`**: Rejestr obsłużonych dat i tagów (Smart History).
   - [ ] **Tabela `scraping_logs`**: Szczegółowe metryki każdej sesji (duration, success_rate, total_seen).
 - [ ] **Automatyzacja Cykliczna**:
-  - [ ] **Multi-Tag Loop**: Kolejka tagów "Core" do codziennego skanowania.
+  - [x] **Multi-Tag Loop**: Kolejka tagów "Core" do codziennego skanowania.
   - [ ] **Scheduler**: Skrypt do uruchamiania nocnego (po północy).
   - [ ] **Archive Catch-up**: Algorytm nadrabiania historii od 2012 roku w oknach czasowych niskiego priorytetu.
+## 🛠️ Faza 1: Autonomia i Zarządzanie Stanem (W TRAKCIE)
+- [x] **Multi-Tag Loop**: Implementacja `agent-scan-core` w Makefile. (ZROBIONE)
+- [ ] **Rozszerzone Metryki (SQL)**:
+  - [ ] Tabela `scraping_logs`: (start_time, end_time, tags_processed, links_found, links_added).
+- [ ] **Integrity Guard**: Automatyczny backup bazy danych przy każdym `make db-init`.
+- [ ] **AgentAI.md**: Pierwszy szkic zasad współpracy (instrukcje dla promptów).
 
 ---
 

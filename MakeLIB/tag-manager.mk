@@ -4,7 +4,7 @@
 TAGS_FILE  := data/tags.txt
 BACKUP_FILE := data/tags.txt.bak
 
-.PHONY: add-tags remove-tags show-tags tags-sort tags-backup
+.PHONY: tags-add tags-remove tags-show tags-sort tags-backup
 
 tags-backup: ## Tworzy kopię zapasową pliku tagów
 	@if [ -f $(TAGS_FILE) ]; then \
@@ -12,7 +12,7 @@ tags-backup: ## Tworzy kopię zapasową pliku tagów
 		echo "💾 Backup utworzony: $(BACKUP_FILE)"; \
 	fi
 
-add-tags: tags-backup ## Dodaj tagi (make add-tags t="pojęcie")
+tags-add: tags-backup ## Dodaj tagi (make add-tags t="pojęcie")
 	@clear
 	@if [ -z "$(t)" ]; then \
 		echo "❌ Błąd: Musisz podać tagi. Użyj: make add-tags t=\"pl=en\""; \
@@ -23,7 +23,7 @@ add-tags: tags-backup ## Dodaj tagi (make add-tags t="pojęcie")
 	@$(PYTHON) -m agentai.lib.tag_manager add "$(t)"
 	@$(MAKE) tags-sort
 
-remove-tags: tags-backup ## Usuń tagi (make remove-tags t="pojęcie")
+tags-remove: tags-backup ## Usuń tagi (make remove-tags t="pojęcie")
 	@clear
 	@if [ -z "$(t)" ]; then \
 		echo "❌ Błąd: Musisz podać co usunąć. Użyj: make remove-tags t=\"pojęcie\""; \
@@ -33,7 +33,7 @@ remove-tags: tags-backup ## Usuń tagi (make remove-tags t="pojęcie")
 	@$(PYTHON) -m agentai.lib.tag_manager remove "$(t)"
 	@$(MAKE) tags-sort
 
-show-tags: ## Pokazuje pary PL <-> EN z bazy pojęć
+tags-show: ## Pokazuje pary PL <-> EN z bazy pojęć
 	@clear
 	@echo "📋 TWOJA BAZA POJĘĆ (PL <-> EN):"
 	@echo "---------------------------------------------------"

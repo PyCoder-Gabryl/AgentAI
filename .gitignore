@@ -281,3 +281,4 @@ data/*.db-journal
 
 # Pliki systemowe
 .DS_Store
+/data/agent_knowledge.db.wal
