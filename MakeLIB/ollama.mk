@@ -18,7 +18,8 @@ ollama-start: ## Uruchamia serwer Ollama w tle
 
 ollama-stop: ## Zatrzymuje serwer Ollama
 	@echo "🛑 Zatrzymywanie serwera Ollama..."
-	@pkill -x "ollama" && echo "✅ Zatrzymano." || echo "⚠️ Serwer nie był uruchomiony."
+	@pkill -x "ollama" && echo "✅ Zatrzymano." || \
+		echo "⚠️ Serwer nie był uruchomiony."
 
 ollama-list: ## Wyświetla listę modeli (Auto-start/stop)
 	@clear
@@ -60,10 +61,15 @@ ollama-status: ## Status procesów i modeli
 	@if pgrep -x "ollama" > /dev/null; then \
 		echo "Status: [AKTYWNY]"; \
 		echo "-----------------------------------"; \
-		ps -o %cpu,%mem,rss -p $$(pgrep -x "ollama") | awk 'NR==1{print "   CPU%  MEM%  RAM_RSS"}; NR==2{print "   "$$1"%  "$$2"%  "$$3/1024" MB"}'; \
+		ps -o %cpu,%mem,rss -p $$(pgrep -x "ollama") | \
+			awk 'NR==1{print "   CPU%  MEM%  RAM_RSS"}; \
+			     NR==2{print "   "$$1"%  "$$2"%  "$$3/1024" MB"}'; \
 		echo ""; \
 		echo "🚀 MODELE W PAMIĘCI:"; \
-		curl -s http://localhost:11434/api/ps | jq -r '.models[] | "   - " + .name + " (" + (.size/1073741824 | strftime("%0.2f")) + " GB)"' 2>/dev/null || echo "   Brak załadowanych modeli."; \
+		curl -s http://localhost:11434/api/ps | jq -r '.models[] | \
+			"   - " + .name + " (" + \
+			(.size/1073741824 | strftime("%0.2f")) + " GB)"' \
+			2>/dev/null || echo "   Brak załadowanych modeli."; \
 	else \
 		echo "Status: [NIEAKTYWNY]"; \
 	fi
@@ -71,5 +77,6 @@ ollama-status: ## Status procesów i modeli
 
 ollama-clean: ## Wyładowuje modele z RAM
 	@echo "🧹 Czyszczenie RAM z modeli..."
-	@curl -s -X POST http://localhost:11434/api/generate -d '{"model": "llama3", "keep_alive": 0}' > /dev/null
+	@curl -s -X POST http://localhost:11434/api/generate \
+		-d '{"model": "llama3", "keep_alive": 0}' > /dev/null
 	@echo "✅ Modele wyładowane."

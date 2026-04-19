@@ -2,9 +2,11 @@
 # agent.mk - Operacje skanowania i scrapowania
 # =============================================================================
 # Używamy '=' zamiast ':=' aby opóźnić wykonanie komendy shell
-DYNAMIC_TAGS_EN = $(shell [ -f $(TAGS_FILE) ] && cut -d':' -f2 $(TAGS_FILE) | tr '\n' ',' | sed 's/,$$//')
+DYNAMIC_TAGS_EN = $(shell [ -f $(TAGS_FILE) ] && cut -d':' -f2 $(TAGS_FILE) | \
+    tr '\n' ',' | sed 's/,$$//')
 
-.PHONY: agent-batch agent-scan-core agent-scan-list agent-scan-url agent-search agent-process agent-db-clean
+.PHONY: agent-batch agent-scan-core agent-scan-list agent-scan-url \
+        agent-search agent-process agent-db-clean
 
 agent-batch: ## Masowe skanowanie (tags="pl,en" date=2024 lim=50)
 	@clear
@@ -38,13 +40,19 @@ agent-process: ## Przetwarza artykuły przez AI (limit=5)
 	@$(PYTHON) -m agentai.lib.processor
 
 agent-db-clean: ## Oznacza oczywiste śmieci jako 'rejected'
-	@$(PYTHON) -c "from agentai.core.database import AgentDatabase; db=AgentDatabase(); db.conn.execute(\"UPDATE articles SET status='rejected' WHERE length(title) < 10 OR title LIKE '%Sign up%' OR title LIKE '%Member-only%'\")"
-	@echo "🧹 Baza oczyszczona ze śmieciowych rekordów."
+	@echo "🧹 Analiza śmieci w bazie..."
+	@$(PYTHON) -c "from agentai.core.database import AgentDatabase; \
+	db = AgentDatabase(); \
+	sql = \"UPDATE articles SET status='rejected' WHERE length(title) < 10 \
+	OR title LIKE '%Sign up%' OR title LIKE '%Member-only%'\"; \
+	db.conn.execute(sql); \
+	print('✅ Baza oczyszczona.')"
 
 agent-scan-date: ## Skanuje tagi w dacie (t="tag1,tag2" d="2024-01")
 	@clear
 	@if [ -z "$(t)" ] || [ -z "$(d)" ]; then \
-		echo "❌ Błąd: Podaj tagi (t=) i datę (d=). Przykład: make agent-scan-date t=\"python\" d=\"2024\""; \
+		echo "❌ Błąd: Podaj tagi (t=) i datę (d=)."; \
+		echo "Przykład: make agent-scan-date t=\"python\" d=\"2024\""; \
 		exit 1; \
 	fi
 	@echo "📅 Skanowanie daty [$(d)] dla tagów: [$(t)]"
