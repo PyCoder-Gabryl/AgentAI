@@ -37,7 +37,7 @@ async def save_medium_session():
 
 	    Funkcja czyści stare dane sesji, otwiera nowe okno przeglądarki z emulacją
 	użytkownika (User-Agent) i oczekuje, aż operator zamknie okno po zalogowaniu.
-	"""
+	"""  # noqa: E101
 	user_data_dir = os.path.join(os.getcwd(), 'data/user_data_scraper')
 
 	if os.path.exists(user_data_dir):
