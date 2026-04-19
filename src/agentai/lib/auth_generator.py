@@ -48,6 +48,7 @@ except ImportError:
 	stealth = None
 
 
+# noinspection PyCallingNonCallable
 async def save_medium_session():
 	"""Uruchamia przeglądarkę w trybie graficznym do manualnego zalogowania się.
 
