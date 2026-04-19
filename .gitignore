@@ -264,3 +264,20 @@ cython_debug/
 
 # PyCharm
 .idea/
+
+# Środowisko Python
+.venv/
+__pycache__/
+*.pyc
+
+# Dane przeglądarki i sesje (Playwright)
+data/user_data/
+data/user_data_scraper/
+auth.json
+
+# Bazy danych
+data/*.db
+data/*.db-journal
+
+# Pliki systemowe
+.DS_Store

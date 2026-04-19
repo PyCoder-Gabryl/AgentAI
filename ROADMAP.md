@@ -1,31 +1,78 @@
-# 🗺️ Roadmap Projektu: Knowledge Weaver
+# 🗺️ Roadmap: Knowledge Weaver (AgentAI)
 
-## Faza 1: Fundamenty (Środowisko i Scraper)
+## 🎯 Faza 0: Fundamenty (ZAKOŃCZONE)
 - [x] Konfiguracja środowiska Python 3.14 (venv).
-- [ ] Instalacja i konfiguracja Ollama (test modeli Gemma 2 2B i 27B).
-- [ ] Implementacja Playwright z obsługą logowania do Medium.com.
-- [ ] Utworzenie bazy DuckDB dla statusów linków (Visited / Pending / Irrelevant).
-- [ ] Skrypt `launchd` do cyklicznego uruchamiania monitora.
+- [x] Inicjalizacja bazy wiedzy DuckDB (`articles`).
+- [x] **Scraper V2**:
+  - [x] Obsługa trybów: `ARCHIVE`, `SEARCH`, `LIST`, `ALL_LISTS`, `SINGLE`.
+  - [x] Automatyzacja "Show More" i scrollowania.
+  - [x] Mechanizm zachowywania sesji (Playwright Context).
+- [x] **Sterowanie (Makefile)**:
+  - [x] Polecenia do skanowania po dacie, frazie i URL.
+  - [x] Narzędzia analityczne (`db-stats`, `db-trends`).
+  - [x] Moduł czyszczący śmieci (`db-clean-trash`) z raportowaniem.
 
-## Faza 2: Inteligencja (RAG i Przetwarzanie)
-- [ ] Integracja LlamaIndex z ChromaDB (lokalna baza wektorowa).
-- [ ] Implementacja "Lekkiego Agenta" (2B) do filtrowania tematów.
-- [ ] Implementacja "Ciężkiego Agenta" (27B) - prompt engineering dla tłumaczeń i streszczeń.
-- [ ] Logika zachowania kodu: Wyciąganie bloków `code` przed tłumaczeniem i przywracanie ich po procesie.
+---
 
-## Faza 3: Zarządzanie Plikami (Integracja Obsidian)
-- [ ] Skrypt budujący strukturę katalogów (Vault Generator).
-- [ ] Automatyczne generowanie `index.md` (Table of Contents) dla każdego działu.
-- [ ] System obsługi grafik (pobieranie lokalne i linkowanie relatywne).
-- [ ] Funkcja "Knowledge Merge" - sprawdzanie podobieństwa nowej treści do istniejącej przed zapisem.
+## 🛠️ Faza 1: Autonomia i Zarządzanie Stanem (TERAZ)
+*Cel: Sprawić, by Agent wiedział, co zrobił i nie powielał pracy.*
 
-## Faza 4: Interfejs i Kontrola
-- [ ] Budowa prostego UI w Streamlit (ustawianie priorytetów %, podgląd kolejki).
-- [ ] Implementacja Resource Guard (sprawdzanie obciążenia CPU przed startem ciężkich zadań).
-- [ ] Moduł "Audytora" - cotygodniowe przeglądanie plików pod kątem zbyt dużej objętości.
-- [ ] System powiadomień porannych (Daily Summary).
+- [ ] **AgentAI.md (Master Control File)**:
+  - Implementacja pliku w Obsidianie jako "Single Source of Truth".
+  - Definicja zasad nienaruszalnych (Anti-Hallucination Protocol).
+- [ ] **Inteligentna Pamięć (DuckDB)**:
+  - [ ] **Tabela `scan_history`**: Rejestr obsłużonych dat i tagów (Smart History).
+  - [ ] **Tabela `scraping_logs`**: Szczegółowe metryki każdej sesji (duration, success_rate, total_seen).
+- [ ] **Automatyzacja Cykliczna**:
+  - [ ] **Multi-Tag Loop**: Kolejka tagów "Core" do codziennego skanowania.
+  - [ ] **Scheduler**: Skrypt do uruchamiania nocnego (po północy).
+  - [ ] **Archive Catch-up**: Algorytm nadrabiania historii od 2012 roku w oknach czasowych niskiego priorytetu.
 
-## Faza 5: Bezpieczeństwo i Optymalizacja
-- [ ] System automatycznego backupu (pakowanie starej wersji Vault przed przebudową).
-- [ ] Optymalizacja promptów w celu redukcji halucynacji.
-- [ ] Testy stabilności przy dużym obciążeniu RAM.
+---
+
+## 🧠 Faza 2: Inteligencja i Procesowanie (RAG)
+*Cel: Zamiana surowych linków w polskojęzyczną wiedzę.*
+
+- [ ] **Silnik AI (Ollama)**:
+  - [ ] Konfiguracja modelu 2B (klasyfikacja) i 27B (tłumaczenie/synteza).
+  - [ ] Integracja LlamaIndex z ChromaDB (baza wektorowa).
+- [ ] **Redakcja Tekstu**:
+  - [ ] **Auto-Translation**: Tłumaczenie opisów przy zachowaniu oryginalnego kodu.
+  - [ ] **Dekompozycja**: Podział artykułów na atomowe notatki według nagłówków H1-H3.
+- [ ] **Discovery Engine**:
+  - [ ] Wyciąganie "Related Tags" i sugerowanie nowych obszarów badań.
+  - [ ] Ranking ważności źródeł na podstawie "mięsa" (wartościowej treści).
+
+---
+
+## 📂 Faza 3: Integracja z Obsidianem (Wiki-Vault)
+*Cel: Automatyczne budowanie Twojej osobistej encyklopedii.*
+
+- [ ] **Vault Generator**:
+  - [ ] Automatyczna struktura folderów (`[Tag]/Core`, `[Tag]/Advanced`).
+  - [ ] Generowanie Map Treści (MOC) i indeksów.
+- [ ] **Smart Notes**:
+  - [ ] **Versioning & Sourcing**: Dopiski z datą i linkiem (ukryte w Callouts).
+  - [ ] **Knowledge Merge**: Łączenie nowej wiedzy z istniejącymi notatkami zamiast tworzenia duplikatów.
+  - [ ] **Auto-Linking**: Tworzenie powiązań `[[pojęć]]` wewnątrz tekstów.
+- [ ] **Sync Command**: Polecenie `make agent-sync` (pełna ścieżka: Link -> SQL -> AI -> MD).
+
+---
+
+## 📊 Faza 4: Interfejs i Monitoring
+*Cel: Wgląd w pracę Agenta i kontrola zasobów.*
+
+- [ ] **Streamlit Dashboard**:
+  - [ ] Wykresy przyrostu wiedzy (dzień/miesiąc/rok).
+  - [ ] Zarządzanie listą tagów i priorytetów.
+- [ ] **Resource Guard**: Monitorowanie obciążenia systemu przed startem ciężkich zadań AI.
+- [ ] **Newsletter Agenta**: Poranne podsumowanie (Daily Summary) o nowych odkryciach i trendach.
+- [ ] **Moduł Audytora**: Automatyczna kontrola jakości notatek i czyszczenie bazy wektorowej.
+
+---
+
+### 📝 Standard Operacyjny Notatki (Wiki-Style)
+- **Tytuł**: Angielskie pojęcie techniczne (np. `Asyncio_Loops.md`).
+- **Język**: Opis polski, merytoryczny, zwięzły.
+- **Kod**: Oryginalne snippety, nazewnictwo zmiennych bez zmian.
+- **Źródła**: Pełna transparentność (Data + URL) w każdej dopisanej sekcji.
