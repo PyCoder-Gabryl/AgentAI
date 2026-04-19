@@ -1,84 +1,66 @@
 # 🗺️ Roadmap: Knowledge Weaver (AgentAI)
 
-## 🎯 Faza 0: Fundamenty (ZAKOŃCZONE)
-- [x] Konfiguracja środowiska Python 3.14 (venv).
-- [x] Inicjalizacja bazy wiedzy DuckDB (`articles`).
-- [x] **Scraper V2**:
-  - [x] Obsługa trybów: `ARCHIVE`, `SEARCH`, `LIST`, `ALL_LISTS`, `SINGLE`.
-  - [x] Automatyzacja "Show More" i scrollowania.
-  - [x] Mechanizm zachowywania sesji (Playwright Context).
-- [x] **Sterowanie (Makefile)**:
-  - [x] Polecenia do skanowania po dacie, frazie i URL.
-  - [x] Narzędzia analityczne (`db-stats`, `db-trends`).
-  - [x] Moduł czyszczący śmieci (`db-clean-trash`) z raportowaniem.
+## ✅ Faza 0: Fundamenty (ZAKOŃCZONE)
+
+- [x] **Środowisko**: Konfiguracja Python 3.14 + venv + Makefile.
+- [x] **Baza Danych**: Inicjalizacja DuckDB (`articles`) z systemem czyszczenia śmieci.
+- [x] **Scraper V2**: Obsługa ARCHIVE, SEARCH, LIST. Automatyczne scrollowanie i sesje Playwright.
+- [x] **Express Tag Manager**: System parowania pojęć PL <-> EN z trybem błyskawicznym (`tag=tag`) i autotłumaczeniem.
+- [x] **Safety First**: System automatycznych backupów bazy tagów i walidacji przed zapisem.
 
 ---
 
-## 🛠️ Faza 1: Autonomia i Zarządzanie Stanem (TERAZ)
-*Cel: Sprawić, by Agent wiedział, co zrobił i nie powielał pracy.*
+## ⚙️ Faza 1: Autonomia i Zarządzanie Stanem (W TRAKCIE)
 
-- [ ] **AgentAI.md (Master Control File)**:
-  - Implementacja pliku w Obsidianie jako "Single Source of Truth".
-  - Definicja zasad nienaruszalnych (Anti-Hallucination Protocol).
-- [ ] **Inteligentna Pamięć (DuckDB)**:
-  - [x] **Tabela `scan_history`**: Rejestr obsłużonych dat i tagów (Smart History).
-  - [ ] **Tabela `scraping_logs`**: Szczegółowe metryki każdej sesji (duration, success_rate, total_seen).
-- [ ] **Automatyzacja Cykliczna**:
-  - [x] **Multi-Tag Loop**: Kolejka tagów "Core" do codziennego skanowania.
-  - [ ] **Scheduler**: Skrypt do uruchamiania nocnego (po północy).
-  - [ ] **Archive Catch-up**: Algorytm nadrabiania historii od 2012 roku w oknach czasowych niskiego priorytetu.
-## 🛠️ Faza 1: Autonomia i Zarządzanie Stanem (W TRAKCIE)
-- [x] **Multi-Tag Loop**: Implementacja `agent-scan-core` w Makefile. (ZROBIONE)
-- [ ] **Rozszerzone Metryki (SQL)**:
-  - [ ] Tabela `scraping_logs`: (start_time, end_time, tags_processed, links_found, links_added).
-- [ ] **Integrity Guard**: Automatyczny backup bazy danych przy każdym `make db-init`.
-- [ ] **AgentAI.md**: Pierwszy szkic zasad współpracy (instrukcje dla promptów).
+*Cel: Sprawić, by Agent pracował bez nadzoru i wiedział, co już zrobił.*
+
+- [x] **Multi-Tag Loop**: Automatyczne skanowanie całej bazy pojęć (`make agent-scan-core`).
+- [x] **Archive Catch-up**: Możliwość nadrabiania historii od 2012 roku dla wybranych dat (`make agent-scan-date`).
+- [x] **Smart History**: Agent automatycznie pomija linki, które już posiada w DuckDB (ochrona przed duplikatami).
+- [ ] **AgentAI.md (Master Control)**: Stworzenie pliku zasad w Obsidianie (protokół antyhalucynacyjny).
+- [ ] **Scraping Logs**: Rozbudowa tabeli w DuckDB o metryki sesji (ile nowych linków dodano w danej minucie).
+- [ ] **Integrity Guard**: Skrypt weryfikujący spójność bazy tagów z bazą artykułów.
 
 ---
 
-## 🧠 Faza 2: Inteligencja i Procesowanie (RAG)
-*Cel: Zamiana surowych linków w polskojęzyczną wiedzę.*
+## 🧠 Faza 2: Inteligencja i Procesowanie (NASTĘPNY KROK)
 
-- [ ] **Silnik AI (Ollama)**:
-  - [ ] Konfiguracja modelu 2B (klasyfikacja) i 27B (tłumaczenie/synteza).
-  - [ ] Integracja LlamaIndex z ChromaDB (baza wektorowa).
-- [ ] **Redakcja Tekstu**:
-  - [ ] **Auto-Translation**: Tłumaczenie opisów przy zachowaniu oryginalnego kodu.
-  - [ ] **Dekompozycja**: Podział artykułów na atomowe notatki według nagłówków H1-H3.
-- [ ] **Discovery Engine**:
-  - [ ] Wyciąganie "Related Tags" i sugerowanie nowych obszarów badań.
-  - [ ] Ranking ważności źródeł na podstawie "mięsa" (wartościowej treści).
+*Cel: Zamiana surowych linków w polskojęzyczną wiedzę za pomocą AI.*
+
+- [x] **Ollama Orchestrator**: Automatyczne zarządzanie serwerem Ollama (On-Demand) i pobieranie modeli.
+- [ ] **RAG Engine**: Integracja LlamaIndex z bazą wektorową (ChromaDB) dla artykułów.
+- [ ] **Auto-Translation V2**: Automatyczne tłumaczenie nagłówków i streszczeń artykułów na polski przy użyciu
+  `deep-translator`.
+- [ ] **Semantic Filter**: Wykorzystanie modelu LLM (np. Llama 3) do odrzucania artykułów niskiej jakości ("mięso" vs "
+  lorem ipsum").
 
 ---
 
 ## 📂 Faza 3: Integracja z Obsidianem (Wiki-Vault)
-*Cel: Automatyczne budowanie Twojej osobistej encyklopedii.*
 
-- [ ] **Vault Generator**:
-  - [ ] Automatyczna struktura folderów (`[Tag]/Core`, `[Tag]/Advanced`).
-  - [ ] Generowanie Map Treści (MOC) i indeksów.
-- [ ] **Smart Notes**:
-  - [ ] **Versioning & Sourcing**: Dopiski z datą i linkiem (ukryte w Callouts).
-  - [ ] **Knowledge Merge**: Łączenie nowej wiedzy z istniejącymi notatkami zamiast tworzenia duplikatów.
-  - [ ] **Auto-Linking**: Tworzenie powiązań `[[pojęć]]` wewnątrz tekstów.
-- [ ] **Sync Command**: Polecenie `make agent-sync` (pełna ścieżka: Link -> SQL -> AI -> MD).
+*Cel: Automatyczne budowanie osobistej encyklopedii.*
+
+- [ ] **Vault Generator**: Automatyczna struktura folderów na podstawie tagów z `tags.txt`.
+- [ ] **Smart Notes**: Generowanie notatek MD z podziałem na atomowe sekcje (H1-H3).
+- [ ] **Knowledge Merge**: Łączenie nowej wiedzy z istniejącymi notatkami (brak duplikatów plików).
+- [ ] **Auto-Linking**: Tworzenie powiązań `[[bi-directional]]` między pojęciami technicznymi.
 
 ---
 
-## 📊 Faza 4: Interfejs i Monitoring
+## 📊 Faza 4: Monitoring i Interfejs
+
 *Cel: Wgląd w pracę Agenta i kontrola zasobów.*
 
-- [ ] **Streamlit Dashboard**:
-  - [ ] Wykresy przyrostu wiedzy (dzień/miesiąc/rok).
-  - [ ] Zarządzanie listą tagów i priorytetów.
-- [ ] **Resource Guard**: Monitorowanie obciążenia systemu przed startem ciężkich zadań AI.
-- [ ] **Newsletter Agenta**: Poranne podsumowanie (Daily Summary) o nowych odkryciach i trendach.
-- [ ] **Moduł Audytora**: Automatyczna kontrola jakości notatek i czyszczenie bazy wektorowej.
+- [ ] **Dashboard**: Prosty interfejs (Streamlit) pokazujący przyrost bazy danych.
+- [ ] **Resource Guard**: Monitorowanie RAM/CPU przed uruchomieniem ciężkich modeli AI.
+- [ ] **Daily Summary**: Poranne powiadomienie o najciekawszych znalezionych artykułach z ostatniej nocy.
 
 ---
 
-### 📝 Standard Operacyjny Notatki (Wiki-Style)
-- **Tytuł**: Angielskie pojęcie techniczne (np. `Asyncio_Loops.md`).
-- **Język**: Opis polski, merytoryczny, zwięzły.
-- **Kod**: Oryginalne snippety, nazewnictwo zmiennych bez zmian.
-- **Źródła**: Pełna transparentność (Data + URL) w każdej dopisanej sekcji.
+### 🛠️ STOS TECHNOLOGICZNY (Status: PANCERNY)
+
+- **Język**: Python 3.14 (Venv)
+- **Baza**: DuckDB (SQL)
+- **Scraper**: Playwright (Headless)
+- **Sterowanie**: GNU Make (Zmodularyzowany)
+- **AI**: Ollama (Llama 3 + Nomic-Embed)
