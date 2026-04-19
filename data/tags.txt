@@ -1,0 +1,22 @@
+
+ai agents
+bash
+duckdb
+fastapi
+hatch
+langchain
+llamaindex
+logger
+machine learning
+obsidian
+ollama
+pydantic
+python
+rag
+rust
+sh
+shell
+structlog
+uv
+web scraping
+zsh

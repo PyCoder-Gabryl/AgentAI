@@ -1,80 +1,62 @@
 # =============================================================================
-# ollama.mk - Zarządzanie Ollama
+# ollama.mk - Zarządzanie lokalnym mózgiem AI (Ollama)
 # =============================================================================
 # Ścieżka: MakeLIB/ollama.mk
-# Opis: Polecenia do zarządzania instalacją i usługą Ollama (LLM runner).
-# Wymagania: Zainstalowany i skonfigurowany Homebrew.
+# Opis: Obsługa serwera LLM, monitorowanie modeli i zasobów.
 # =============================================================================
 
-.PHONY: ollama-upgrade ollama-start ollama-stop ollama-status ollama-pull
+.PHONY: ollama-start ollama-stop ollama-status ollama-list ollama-clean
 
-ollama-upgrade: ## Sprawdź/instaluj/zaktualizuj Ollama
-	@if ! command -v ollama &> /dev/null; then \
-		echo "Ollama nie jest zainstalowana. Instaluję przez brew..."; \
-		brew install ollama; \
-	else \
-		echo "Ollama jest zainstalowana. Aktualizuję..."; \
-		brew upgrade ollama; \
-	fi
-
-ollama-start: ## Uruchom serwer z własną konfiguracją
-	@echo "Uruchamianie serwera Ollama z optymalizacją pod Agenta..."
+ollama-start: ## Uruchamia serwer Ollama w tle z optymalizacją pod Agenta
+	@clear
+	@echo "🚀 Uruchamianie serwera Ollama..."
 	@if pgrep -x "ollama" > /dev/null; then \
-		echo "Ollama już działa."; \
+		echo "⚠️ Ollama już działa."; \
 	else \
 		export OLLAMA_KEEP_ALIVE="24h"; \
 		export OLLAMA_NUM_PARALLEL=2; \
-		export OLLAMA_DEBUG=1; \
 		nohup ollama serve > /dev/null 2>&1 & \
 		sleep 2; \
-		echo "Serwer wystartował (Keep-alive: 24h, Parallel: 2, Debug: ON)."; \
+		echo "✅ Serwer wystartował (Keep-alive: 24h, Parallel: 2)."; \
 	fi
 
-ollama-stop: ## Zatrzymaj serwer Ollama
-	@echo "Zatrzymywanie serwera Ollama..."
-	@killall ollama 2>/dev/null || echo "Proces Ollama nie był uruchomiony."
+ollama-stop: ## Zatrzymuje serwer Ollama
+	@clear
+	@echo "🛑 Zatrzymywanie serwera Ollama..."
+	@pkill -x "ollama" || echo "⚠️ Serwer nie był uruchomiony."
+	@echo "✅ Zatrzymano."
 
-ollama-status: ## Szczegółowy status serwera, modeli i zasobów
-	@echo "--- STATUS PROCESU ---"
+ollama-status: ## Pokazuje szczegółowy status: procesy, modele i zużycie RAM
+	@clear
+	@echo "🧠 --- STATUS MÓZGU AI (OLLAMA) ---"
 	@if pgrep -x "ollama" > /dev/null; then \
-		echo "Proces Ollama: [AKTYWNY]"; \
-		echo "PID: $$(pgrep -x "ollama")"; \
-		echo "Port: $$(lsof -Pi :11434 -sTCP:LISTEN -t >/dev/null && echo "11434 (Słucha)" || echo "Brak nasłuchu")"; \
+		echo "Status: [AKTYWNY]"; \
+		echo "-----------------------------------"; \
+		echo "📊 ZUŻYCIE ZASOBÓW:"; \
+		ps -o %cpu,%mem,rss -p $$(pgrep -x "ollama") | awk 'NR==1{print "   CPU%  MEM%  RAM_RSS"}; NR==2{print "   "$$1"%  "$$2"%  "$$3/1024" MB"}'; \
 		echo ""; \
-		echo "--- ZASOBY SYSTEMOWE (M1) ---"; \
-		ps -ro %cpu,%mem,rss -p $$(pgrep -x "ollama") | awk 'NR==1{print "CPU%  MEM%  RES_RAM"}; NR==2{print $$1"  "$$2"  "$$3/1024" MB"}'; \
-		echo ""; \
-		echo "--- AKTUALNIE ZAŁADOWANE MODELE ---"; \
-		curl -s http://localhost:11434/api/ps | jq -r '.models[] | "Model: " + .name + " | Rozmiar: " + (.size/1073741824 | strftime("%0.2f")) + " GB | Kontekst: " + (.details.parameter_size)"' 2>/dev/null || echo "Brak aktywnego modelu w pamięci RAM."; \
-		echo ""; \
-		echo "--- LISTA POBRANYCH PLIKÓW ---"; \
-		ollama list; \
+		echo "🚀 MODELE W PAMIĘCI (Active):"; \
+		curl -s http://localhost:11434/api/ps | jq -r '.models[] | "   - " + .name + " (" + (.size/1073741824 | strftime("%0.2f")) + " GB)"' 2>/dev/null || echo "   Brak załadowanych modeli."; \
 	else \
-		echo "Proces Ollama: [NIEAKTYWNY]"; \
+		echo "Status: [NIEAKTYWNY]"; \
 	fi
+	@echo "-----------------------------------"
 
-ollama-update-all: ## Aktualizuj absolutnie wszystkie pobrane modele (auto-start)
-	@if ! pgrep -x "ollama" > /dev/null; then \
-		echo "Serwer nie działa. Uruchamiam tymczasowo..."; \
-		nohup ollama serve > /dev/null 2>&1 & \
-		sleep 5; \
-	fi
-	@echo "Aktualizacja wszystkich lokalnych modeli..."
-	@# Pobieramy listę, usuwamy nagłówek i czyścimy puste linie
-	@models=$$(ollama list | tail -n +2 | awk '{print $$1}' | grep .); \
-	for model in $$models; do \
-		echo ">>> Aktualizuję: $$model"; \
-		ollama pull $$model; \
-	done
+ollama-list: ## Wyświetla listę wszystkich pobranych modeli
+	@clear
+	@echo "📦 --- DOSTĘPNE MODELE LOKALNE ---"
+	@ollama list
+	@echo "-----------------------------------"
 
-ollama-logs: ## Śledź logi serwera Ollama w czasie rzeczywistym
-	@echo "Podgląd logów serwera (Ctrl+C aby zakończyć)..."
-	@if [ -f ~/.ollama/logs/server.log ]; then \
-		tail -f ~/.ollama/logs/server.log; \
-	else \
-		echo "Błąd: Plik logów nie istnieje. Uruchom najpierw serwer."; \
-	fi
+ollama-pull: ## Pobiera domyślne modele Agenta (llama3, nomic-embed-text)
+	@clear
+	@echo "📥 Pobieranie modeli bazowych..."
+	@ollama pull llama3
+	@ollama pull nomic-embed-text
+	@echo "✅ Modele gotowe do pracy."
 
-ollama-logs-clear: ## Wyczyść plik logów
-	@echo "Czyszczenie logów..."
-	@rm -f ~/.ollama/logs/server.log && echo "Logi usunięte."
+ollama-clean: ## Czyści pamięć RAM z nieużywanych modeli
+	@clear
+	@echo "🧹 Czyszczenie pamięci modeli..."
+	@curl -X POST http://localhost:11434/api/generate -d '{"model": "llama3", "keep_alive": 0}' > /dev/null
+	@echo "✅ Modele wyładowane z RAM."

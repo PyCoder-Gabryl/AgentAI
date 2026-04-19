@@ -6,10 +6,6 @@ PYTHON   := $(VENV)/bin/python
 PIP      := $(VENV)/bin/pip
 export PYTHONPATH := src
 
-# Dołączanie modułów tematycznych
-include dbase.mk
-include agent.mk
-
 .PHONY: agent-init agent-install agent-login
 
 agent-init: ## Inicjalizacja venv
