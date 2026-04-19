@@ -22,7 +22,7 @@
 #       Obsługuje tryby wyszukiwania, archiwum oraz list użytkownika.
 #
 #   CHANGELOG:
-#       - 1.6 (20 IV 2026): Ostateczne skrócenie linii poniżej 100 znaków.
+#       - 1.6 (20 IV 2026): Ostateczne skrócenie linii poniżej 120 znaków i poprawa stylu.
 # ==========================================================================================
 
 import asyncio
@@ -117,11 +117,12 @@ class MediumScraper:
 			except PlaywrightError:
 				pass
 
-			# Selektory rozbite na części, by nie przekraczać linii
+			# Selektory rozbite na części, by nie przekraczać limitu linii
 			s_list = ['a[href*="/p/"]', 'a[href*="---"]', 'article a', 'h2 a', 'h3 a', 'div[role="article"] a']
 			links = await page.evaluate(f"""() => {{
 				const results = [];
-				const anchors = document.querySelectorAll('{','.join(s_list)}');
+				const s = {s_list};
+				const anchors = document.querySelectorAll(s.join(','));
 				anchors.forEach(a => {{
 					const url = a.href.split('?')[0];
 					if (url.includes('/me/') || url.includes('/tag/') || url.includes('/about')) return;
@@ -178,7 +179,8 @@ class MediumScraper:
 
 			if count_after > count_before:
 				added_count += 1
-				print(f'   [+] {total_added + added_count}: {item["title"][:TITLE_PREVIEW_LEN]}...')
+				preview = item['title'][:TITLE_PREVIEW_LEN]
+				print(f'   [+] {total_added + added_count}: {preview}...')
 
 		return added_count
 
