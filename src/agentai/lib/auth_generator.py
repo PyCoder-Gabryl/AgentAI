@@ -5,7 +5,7 @@
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/lib/auth_generator.py
 #
-#   WERSJA:             0.3 [04-19]
+#   WERSJA:             0.4 [04-19]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -16,15 +16,14 @@
 #   IDE:                PyCharm Python 3.14.2 <macOS ARM>
 # ==========================================================================================
 #   OPIS:
-#       Generator sesji uwierzytelniającej. Uruchamia instancję przeglądarki w trybie
-#       graficznym (headed), pozwalając użytkownikowi na manualne zalogowanie się
-#       do Medium i rozwiązanie zabezpieczeń Cloudflare. Sesja jest zapisywana
-#       lokalnie i współdzielona ze scraperem.
+#       Generator sesji uwierzytelniającej. Pozwala użytkownikowi na manualne zalogowanie
+#       się do Medium i zapisanie sesji (ciasteczek), co omija zabezpieczenia Cloudflare.
 #
 #   CHANGELOG:
 #       - 0.1: Podstawowa obsługa sesji Playwright.
 #       - 0.2: Dodanie nagłówków Human-Like.
-#       - 0.3 (19 kwi 2026): Optymalizacja czyszczenia starych danych sesji.
+#       - 0.3 (19 IV 2026): Optymalizacja czyszczenia starych danych sesji.
+#       - 0.4 (19 IV 2026): Poprawa błędów lintera (PEP8, importy, docstringi).
 # ==========================================================================================
 
 import asyncio
@@ -33,40 +32,49 @@ import shutil
 
 from playwright.async_api import async_playwright
 
+try:
+	from playwright_stealth import stealth
+except ImportError:
+	stealth = None
+
 
 async def save_medium_session():
-	"""Uruchamia przeglądarkę do manualnego logowania."""
+	"""Uruchamia przeglądarkę w trybie graficznym do manualnego zalogowania się.
+
+	Czyści poprzednie dane sesji, inicjuje nowy kontekst 'Human-Like' i czeka
+	na zamknięcie okna przez użytkownika po zakończeniu logowania.
+	"""
 	user_data_dir = os.path.join(os.getcwd(), 'data/user_data_scraper')
 
-	# Czyszczenie poprzedniej sesji, jeśli istnieje
 	if os.path.exists(user_data_dir):
 		print('🧹 Czyszczenie starej sesji...')
 		try:
 			shutil.rmtree(user_data_dir, ignore_errors=True)
-		except Exception as e:
-			print(f'⚠️ Uwaga przy sprzątaniu: {e}')
+		except OSError as e:
+			print(f'⚠️ Błąd podczas usuwania katalogu sesji: {e}')
 
 	async with async_playwright() as p:
 		print('\n🚀 Uruchamiam instancję "Human-Like" pod kontrolą Agenta...')
 
-		# Tworzymy kontekst z unikalnym User Agentem i wyłączonymi flagami automatyzacji
+		# Konfiguracja kontekstu (User-Agent i wyłączona automatyzacja)
+		user_agent = (
+			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+			'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+		)
+
 		context = await p.chromium.launch_persistent_context(
 			user_data_dir,
 			headless=False,
-			user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+			user_agent=user_agent,
 			args=['--disable-blink-features=AutomationControlled'],
 			viewport={'width': 1280, 'height': 900},
 		)
 
 		page = context.pages[0] if context.pages else await context.new_page()
 
-		# Próba wstrzyknięcia stealth (jeśli biblioteka jest dostępna)
-		try:
-			from playwright_stealth import stealth
-
+		# Aplikowanie stealth, jeśli biblioteka jest dostępna
+		if stealth:
 			await stealth(page)
-		except ImportError:
-			pass
 
 		print('👉 Otwieram stronę logowania Medium...')
 		await page.goto('https://medium.com/m/signin')
@@ -75,19 +83,19 @@ async def save_medium_session():
 		print('INSTRUKCJA DLA OPERATORA:')
 		print('1. Rozwiąż Cloudflare, jeśli się pojawi.')
 		print('2. Zaloguj się na swoje konto Medium.')
-		print('3. Gdy zobaczysz swój profil (stronę główną), zamknij okno przeglądarki.')
+		print('3. Gdy zobaczysz swój profil, zamknij okno przeglądarki.')
 		print('!' * 30 + '\n')
 
-		# Czekamy na zamknięcie przeglądarki przez użytkownika
+		# Pętla oczekiwania na zamknięcie przeglądarki przez operatora
 		while True:
 			try:
 				if not context.pages:
 					break
 				await asyncio.sleep(1)
-			except Exception:
+			except RuntimeError, Exception:
 				break
 
-		print('✅ Sesja została zapisana w data/user_data_scraper.')
+		print('✅ Sesja została pomyślnie zapisana.')
 
 
 if __name__ == '__main__':
