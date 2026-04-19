@@ -10,7 +10,7 @@ Zapewnia interfejs do manualnego logowania i rozwiązywania wyzwań botów.
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/lib/auth_generator.py
 #
-#   WERSJA:             0.6 [04-19]
+#   WERSJA:             0.7 [04-19]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -28,9 +28,8 @@ Zapewnia interfejs do manualnego logowania i rozwiązywania wyzwań botów.
 #       - 0.1: Podstawowa obsługa sesji Playwright.
 #       - 0.2: Dodanie nagłówków Human-Like.
 #       - 0.3 (19 IV 2026): Optymalizacja czyszczenia starych danych sesji.
-#       - 0.4 (19 IV 2026): Poprawa błędów lintera (PEP8, importy).
-#       - 0.5 (19 IV 2026): Naprawa typowania ViewportSize i walidacja stealth.
-#       - 0.6 (19 IV 2026): Finalna korekta formatowania pod ruff i PEP8.
+#       - 0.4-0.6: Poprawa błędów lintera (PEP8, importy, docstringi).
+#       - 0.7 (19 IV 2026): Rozwiązanie problemu 'None object is not callable'.
 # ==========================================================================================
 
 import asyncio
@@ -39,8 +38,12 @@ import shutil
 
 from playwright.async_api import ViewportSize, async_playwright
 
+# Bezpieczny import stealth
+HAS_STEALTH = False
 try:
 	from playwright_stealth import stealth
+
+	HAS_STEALTH = True
 except ImportError:
 	stealth = None
 
@@ -69,7 +72,6 @@ async def save_medium_session():
 			'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 		)
 
-		# Precyzyjne określenie typu viewport dla IDE
 		my_viewport = ViewportSize(width=1280, height=900)
 
 		context = await p.chromium.launch_persistent_context(
@@ -82,8 +84,8 @@ async def save_medium_session():
 
 		page = context.pages[0] if context.pages else await context.new_page()
 
-		# Aplikowanie stealth (sprawdzenie czy stealth nie jest None i czy jest wywoływalne)
-		if stealth is not None and callable(stealth):
+		# Użycie flagi logicznej zamiast sprawdzania czy obiekt jest callable
+		if HAS_STEALTH and stealth is not None:
 			await stealth(page)
 
 		print('👉 Otwieram stronę logowania Medium...')
@@ -96,7 +98,6 @@ async def save_medium_session():
 		print('3. Gdy zobaczysz swój profil, zamknij okno przeglądarki.')
 		print('!' * 30 + '\n')
 
-		# Pętla oczekiwania na zamknięcie przeglądarki przez operatora
 		while True:
 			try:
 				if not context.pages:
