@@ -28,10 +28,7 @@ db-tags: ## Ranking tagów pobrany z bazy danych
 	[print(f'   {str(r[0]):<20} | {r[1]} art.') for r in res]; \
 	conn.close()"
 
-db-clean-trash: ## Usuwa śmieciowe linki z bazy
+db-clean-trash: ## Oznacza śmieciowe linki jako 'rejected' (zamiast usuwać)
 	@clear
-	@echo "🧹 Czyszczenie bazy..."
-	@$(PYTHON) -c "import duckdb; \
-	conn = duckdb.connect('$(DB_PATH)'); \
-	conn.execute(\"DELETE FROM articles WHERE url LIKE '%/followers' OR length(title) < 5\"); \
-	conn.close(); print('✅ Baza wyczyszczona.')"
+	@echo "🧹 Analiza śmieci w bazie..."
+	@$(PYTHON) -c "from agentai.core.database import AgentDatabase; db=AgentDatabase(); count=db.sanitize_database(); print(f'✅ Zidentyfikowano {count} śmieciowych linków (zablokowano).')"

@@ -4,7 +4,7 @@
 # Używamy '=' zamiast ':=' aby opóźnić wykonanie komendy shell
 DYNAMIC_TAGS_EN = $(shell [ -f $(TAGS_FILE) ] && cut -d':' -f2 $(TAGS_FILE) | tr '\n' ',' | sed 's/,$$//')
 
-.PHONY: agent-batch agent-scan-core agent-scan-list agent-scan-url agent-search agent-process
+.PHONY: agent-batch agent-scan-core agent-scan-list agent-scan-url agent-search agent-process agent-db-clean
 
 agent-batch: ## Masowe skanowanie (tags="pl,en" date=2024 lim=50)
 	@clear
@@ -36,6 +36,10 @@ agent-process: ## Przetwarza artykuły przez AI (limit=5)
 	@clear
 	@echo "🤖 Uruchamiam procesor AI (Ollama)..."
 	@$(PYTHON) -m agentai.lib.processor
+
+agent-db-clean: ## Oznacza oczywiste śmieci jako 'rejected'
+	@$(PYTHON) -c "from agentai.core.database import AgentDatabase; db=AgentDatabase(); db.conn.execute(\"UPDATE articles SET status='rejected' WHERE length(title) < 10 OR title LIKE '%Sign up%' OR title LIKE '%Member-only%'\")"
+	@echo "🧹 Baza oczyszczona ze śmieciowych rekordów."
 
 agent-scan-date: ## Skanuje tagi w dacie (t="tag1,tag2" d="2024-01")
 	@clear

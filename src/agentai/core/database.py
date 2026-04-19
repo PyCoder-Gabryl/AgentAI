@@ -90,3 +90,16 @@ class AgentDatabase:
 				"UPDATE articles SET title_pl = ?, summary_pl = ?, status = 'processed' WHERE url = ?",
 				[title_pl, summary_pl, url],
 			)
+
+	def sanitize_database(self):
+		"""Oznacza śmieciowe linki jako 'rejected', aby nie były procesowane, ale blokowały duplikaty."""
+		trash_patterns = ['%/followers', '%/about', '%/lists', '%/subscribe', '%?source=%']
+
+		for pattern in trash_patterns:
+			self.conn.execute(
+				"UPDATE articles SET status = 'rejected' WHERE url LIKE ? AND status != 'rejected'", [pattern]
+			)
+
+		# Odrzucamy też zbyt krótkie tytuły (np. "Sign In", "Help")
+		self.conn.execute("UPDATE articles SET status = 'rejected' WHERE length(title) < 10 AND status != 'rejected'")
+		return self.conn.execute("SELECT count() FROM articles WHERE status = 'rejected'").fetchone()[0]

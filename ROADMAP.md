@@ -64,3 +64,28 @@
 - **Scraper**: Playwright (Headless)
 - **Sterowanie**: GNU Make (Zmodularyzowany)
 - **AI**: Ollama (Llama 3 + Nomic-Embed)
+
+---
+
+Proponowany schemat działania (The Pipeline)
+Etap 1: Ingestion (Scraper)
+
+Zadanie: Znajdź nowe linki, tytuły i tagi.
+
+Status w bazie: pending.
+
+Częstotliwość: Kilka razy dziennie (automatycznie).
+
+Etap 2: Enrichment (Processor AI)
+
+Zadanie: Pobierz pełną treść (jeśli potrzebna), przetłumacz, wygeneruj punkty.
+
+Status w bazie: processed.
+
+Częstotliwość: Raz na dobę lub na żądanie (make agent-process).
+
+Etap 3: Export (Obsidian)
+
+Zadanie: Weź rekordy processed i stwórz z nich piękne notatki .md.
+
+Status w bazie: exported.
