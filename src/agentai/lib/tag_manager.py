@@ -8,6 +8,25 @@
 #   MODUŁ:              AgentAI/src/agentai/lib/tag_manager.py
 #
 #   WERSJA:             0.4 [04-19]
+#   Data utworzenia:    2026 kwiecień 19, 21:15
+#
+#   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
+#   LICENCJA:           MIT
+#
+#   AUTOR:              PyGamiQ
+#   GITHUB:             https://github.com/PyGamiQ/agentai
+#   IDE:                PyCharm Python 3.14.2 <macOS ARM>
+# ==========================================================================================
+#   OPIS:
+#       Moduł zarządzania tagami i tłumaczeniami pojęć. Pozwala na budowanie lokalnej
+#       bazy mapowań polsko-angielskich, co optymalizuje proces scrapowania
+#       poprzez używanie celniejszych fraz w wyszukiwarce Medium.
+#
+#   CHANGELOG:
+#       - 0.1: Podstawowe wczytywanie tagów.
+#       - 0.2: Integracja z Google Translator jako fallback.
+#       - 0.3: Dodanie interfejsu CLI do zarządzania bazą.
+#       - 0.4 (19 IV 2026): Optymalizacja zapisów i sortowania.
 # ==========================================================================================
 
 import os
