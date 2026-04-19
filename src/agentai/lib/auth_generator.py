@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""Moduł generatora sesji dla AgentAI.
+
+Zapewnia interfejs do manualnego logowania i rozwiązywania wyzwań botów.
+"""
+
 # ==========================================================================================
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/lib/auth_generator.py
 #
-#   WERSJA:             0.4 [04-19]
+#   WERSJA:             0.6 [04-19]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -23,14 +28,16 @@
 #       - 0.1: Podstawowa obsługa sesji Playwright.
 #       - 0.2: Dodanie nagłówków Human-Like.
 #       - 0.3 (19 IV 2026): Optymalizacja czyszczenia starych danych sesji.
-#       - 0.4 (19 IV 2026): Poprawa błędów lintera (PEP8, importy, docstringi).
+#       - 0.4 (19 IV 2026): Poprawa błędów lintera (PEP8, importy).
+#       - 0.5 (19 IV 2026): Naprawa typowania ViewportSize i walidacja stealth.
+#       - 0.6 (19 IV 2026): Finalna korekta formatowania pod ruff i PEP8.
 # ==========================================================================================
 
 import asyncio
 import os
 import shutil
 
-from playwright.async_api import async_playwright
+from playwright.async_api import ViewportSize, async_playwright
 
 try:
 	from playwright_stealth import stealth
@@ -62,18 +69,21 @@ async def save_medium_session():
 			'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 		)
 
+		# Precyzyjne określenie typu viewport dla IDE
+		my_viewport = ViewportSize(width=1280, height=900)
+
 		context = await p.chromium.launch_persistent_context(
 			user_data_dir,
 			headless=False,
 			user_agent=user_agent,
 			args=['--disable-blink-features=AutomationControlled'],
-			viewport={'width': 1280, 'height': 900},
+			viewport=my_viewport,
 		)
 
 		page = context.pages[0] if context.pages else await context.new_page()
 
-		# Aplikowanie stealth, jeśli biblioteka jest dostępna
-		if stealth:
+		# Aplikowanie stealth (sprawdzenie czy stealth nie jest None i czy jest wywoływalne)
+		if stealth is not None and callable(stealth):
 			await stealth(page)
 
 		print('👉 Otwieram stronę logowania Medium...')
