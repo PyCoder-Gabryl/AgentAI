@@ -77,3 +77,16 @@ class AgentDatabase:
 			'VALUES (?, CURRENT_TIMESTAMP, ?, ?)',
 			[query_key, total_found, new_added],
 		)
+
+		def get_pending_articles(self, limit=10):
+			"""Pobiera artykuły, które nie zostały jeszcze przetworzone przez AI."""
+			return self.conn.execute(
+				"SELECT url, title, topic FROM articles WHERE status = 'pending' LIMIT ?", [limit]
+			).fetchall()
+
+		def update_full_article(self, url, title_pl, summary_pl):
+			"""Aktualizuje artykuł o polskie dane i zmienia status."""
+			self.conn.execute(
+				"UPDATE articles SET title_pl = ?, summary_pl = ?, status = 'processed' WHERE url = ?",
+				[title_pl, summary_pl, url],
+			)

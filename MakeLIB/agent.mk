@@ -4,7 +4,7 @@
 # Używamy '=' zamiast ':=' aby opóźnić wykonanie komendy shell
 DYNAMIC_TAGS_EN = $(shell [ -f $(TAGS_FILE) ] && cut -d':' -f2 $(TAGS_FILE) | tr '\n' ',' | sed 's/,$$//')
 
-.PHONY: agent-batch agent-scan-core agent-scan-list agent-scan-url agent-search
+.PHONY: agent-batch agent-scan-core agent-scan-list agent-scan-url agent-search agent-process
 
 agent-batch: ## Masowe skanowanie (tags="pl,en" date=2024 lim=50)
 	@clear
@@ -31,6 +31,11 @@ agent-scan-url: ## Pobiera pojedynczy URL (url="...")
 agent-search: ## Wyszukiwanie frazy (q="fraza" lim=500)
 	@clear
 	@$(PYTHON) -m agentai.core.scraper "$(q)" $(lim)
+
+agent-process: ## Przetwarza artykuły przez AI (limit=5)
+	@clear
+	@echo "🤖 Uruchamiam procesor AI (Ollama)..."
+	@$(PYTHON) -m agentai.lib.processor
 
 agent-scan-date: ## Skanuje tagi w dacie (t="tag1,tag2" d="2024-01")
 	@clear
