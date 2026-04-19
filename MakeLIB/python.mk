@@ -6,23 +6,33 @@ PYTHON   := $(VENV)/bin/python
 PIP      := $(VENV)/bin/pip
 export PYTHONPATH := src
 
-.PHONY: agent-init agent-install agent-login
+.PHONY: agent-init agent-install agent-login pycharm-clean agent-full-clean
 
-agent-init: ## Inicjalizacja venv
-	clear
-	@echo "🔧 Tworzenie izolowanego środowiska..."
+agent-init: ## Tworzenie venv
 	@python3 -m venv $(VENV)
 	@$(PIP) install --upgrade pip
 
-agent-install: agent-init ## Instalacja bibliotek (AI + Scraper)
-	clear
-	@echo "🧠 Instalacja bibliotek..."
-	@$(PIP) install llama-index-llms-ollama \
-		llama-index-embeddings-huggingface \
-		chromadb playwright duckdb beautifulsoup4 \
-		psutil streamlit playwright-stealth
+agent-install: ## Instalacja zależności
+	@$(PIP) install deep-translator duckdb playwright playwright-stealth beautifulsoup4 psutil
 	@$(PYTHON) -m playwright install chromium
-	@echo "✅ System gotowy."
+	@echo "✅ Biblioteki zainstalowane."
 
-agent-login: ## Odśwież sesję Medium
-	@$(PYTHON) -m agentai.auth_generator
+agent-login: ## Manualne logowanie do Medium (sesja)
+	@clear
+	@echo "🔑 Odświeżanie sesji Medium..."
+	@$(PYTHON) -m agentai.lib.auth_generator
+
+pycharm-clean: ## Usuwa śmieci Pythona (__pycache__, .pyc, .pytest_cache)
+	@echo "🧹 Czyszczenie cache Pythona..."
+	@find . -type d -name "__pycache__" -exec rm -rf {} +
+	@find . -type f -name "*.pyc" -delete
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	@echo "✅ Cache wyczyszczony."
+
+agent-full-clean: pycharm-clean ## Głębokie czyszczenie (śmieci IDE + dane Playwrighta)
+	@echo "🔥 Głębokie sprzątanie..."
+	@# Usuwamy logi i śmieci generowane przez przeglądarkę w data/
+	@rm -rf data/user_data*
+	@# Usuwamy potencjalne śmieci PyCharma (jeśli nie są w .gitignore)
+	@rm -rf .idea/*.xml
+	@echo "✅ Projekt lśni."

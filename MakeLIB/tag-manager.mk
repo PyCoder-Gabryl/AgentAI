@@ -1,24 +1,37 @@
 # =============================================================================
 # tag-manager.mk - Zarządzanie dwujęzyczną bazą pojęć (PL <-> EN)
 # =============================================================================
-# Ścieżka: MakeLIB/tag-manager.mk
-# Opis: Obsługa pliku data/tags.txt w formacie pl:en
-# =============================================================================
+TAGS_FILE  := data/tags.txt
+BACKUP_FILE := data/tags.txt.bak
 
-TAGS_FILE := data/tags.txt
+.PHONY: add-tags remove-tags show-tags tags-sort tags-backup
 
-.PHONY: add-tags remove-tags show-tags tags-sort
+tags-backup: ## Tworzy kopię zapasową pliku tagów
+	@if [ -f $(TAGS_FILE) ]; then \
+		cp $(TAGS_FILE) $(BACKUP_FILE); \
+		echo "💾 Backup utworzony: $(BACKUP_FILE)"; \
+	fi
 
-add-tags: ## Dodaj tagi (t="pl=en" lub t="pl"). Przykład: make add-tags t="uczenie maszynowe"
+add-tags: tags-backup ## Dodaj tagi (make add-tags t="pojęcie")
 	@clear
+	@if [ -z "$(t)" ]; then \
+		echo "❌ Błąd: Musisz podać tagi. Użyj: make add-tags t=\"pl=en\""; \
+		exit 1; \
+	fi
 	@echo "📥 Uruchamiam: Menadżer Tagów (Dodawanie)..."
 	@mkdir -p data
-	@$(PYTHON) -m agentai.tag_manager add "$(t)"
+	@$(PYTHON) -m agentai.lib.tag_manager add "$(t)"
+	@$(MAKE) tags-sort
 
-remove-tags: ## Usuń tagi (t="pl" lub t="en"). Przykład: make remove-tags t="rust"
+remove-tags: tags-backup ## Usuń tagi (make remove-tags t="pojęcie")
 	@clear
+	@if [ -z "$(t)" ]; then \
+		echo "❌ Błąd: Musisz podać co usunąć. Użyj: make remove-tags t=\"pojęcie\""; \
+		exit 1; \
+	fi
 	@echo "🔥 Uruchamiam: Menadżer Tagów (Usuwanie)..."
-	@$(PYTHON) -m agentai.tag_manager remove "$(t)"
+	@$(PYTHON) -m agentai.lib.tag_manager remove "$(t)"
+	@$(MAKE) tags-sort
 
 show-tags: ## Pokazuje pary PL <-> EN z bazy pojęć
 	@clear
@@ -27,17 +40,15 @@ show-tags: ## Pokazuje pary PL <-> EN z bazy pojęć
 	@if [ -f $(TAGS_FILE) ]; then \
 		column -t -s ":" $(TAGS_FILE) | sed 's/^/   /'; \
 	else \
-		echo "   ⚠️ Baza jest pusta. Dodaj coś za pomocą make add-tags"; \
+		echo "   ⚠️ Baza jest pusta. Użyj: make add-tags t=\"pojęcie\""; \
 	fi
 	@echo "---------------------------------------------------"
 
-tags-sort: ## Sortuje i czyści plik tags.txt
-	@clear
-	@echo "🧹 Porządkowanie bazy tagów..."
+tags-sort: ## Czyści puste linie i sortuje bazę
 	@if [ -f $(TAGS_FILE) ]; then \
-		sed -i '/^[[:space:]]*$$/d' $(TAGS_FILE); \
-		sort -t':' -k1 $(TAGS_FILE) -o $(TAGS_FILE); \
-		echo "✅ Baza została posortowana alfabetycznie (PL)."; \
-	else \
-		echo "⚠️ Brak pliku do posortowania."; \
+		# Usuwanie pustych linii (kompatybilne z macOS/Linux) \
+		sed -i.tmp '/^[[:space:]]*$$/d' $(TAGS_FILE) && rm $(TAGS_FILE).tmp; \
+		# Sortowanie unikalne \
+		sort -u -t':' -k1 $(TAGS_FILE) -o $(TAGS_FILE); \
+		echo "🧹 Baza posortowana i wyczyszczona."; \
 	fi

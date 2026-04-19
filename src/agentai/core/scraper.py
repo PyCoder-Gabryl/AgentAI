@@ -9,7 +9,7 @@ import time
 
 from playwright.async_api import async_playwright
 
-from agentai.database import AgentDatabase
+from agentai.core.database import AgentDatabase
 
 
 class MediumScraper:

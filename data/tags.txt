@@ -1,22 +1,78 @@
-
-ai agents
-bash
-duckdb
-fastapi
-hatch
-langchain
-llamaindex
-logger
-machine learning
-obsidian
-ollama
-pydantic
-python
-rag
-rust
-sh
-shell
-structlog
-uv
-web scraping
-zsh
+administracja bazami danych:database administration
+agentic workflows:agentic workflows
+alias:alias
+baza danych nosql:nosql database
+baza danych wektorowych:vectordatabase
+baza danych wykresów:graph database
+baza danych:database
+bezpieczeństwo danych:data security
+bezpłatna aplikacja:free app
+biblioteki pythona:python liblares
+cii:sh
+czatgpt:chatgpt
+doker:docker
+drugi pilot:copilot
+fedora:fedora
+freebsd:freebsd
+generatywna sztuczna inteligencja:generative ai
+git:git
+gita:gitea
+githubie:github
+gitlab:gitlab
+głębokie uczenie się:deep learning
+grok:grok
+grzmotnąć:bash
+jabłko:apple
+język programowania rust:rust programming language
+języki programowania:programing languages
+kaczydb:duckdb
+kodowanie:coding
+linuksa:linux
+llm:llm
+machine learning:machine learning
+macos:macos
+mx-linux:mx linux
+neural networks:neural networks
+o mój zsz:oh my zsh
+ochrona danych:data protecion
+odrzutowiec:jetbrain
+oj:oop
+okna:windows
+pakiety pythona:python packages
+panda, pyton:pandas python
+pączek:gemma
+plik makefile:makefile
+pliki dockerowe:dockerfiles
+pojemniki:containers
+powershell:powershell
+powłoka:shell
+prochowiec:mac
+programowanie w pythonie:python programing
+programowanie:programming
+projekt bazy danych:database design
+projekt gry:game design
+pycharm:pycharm
+pydantyczny:pydantic
+pygame:pygame
+pyton:python
+rdza:rust
+rdzawy język:rust language
+rdzawy:rustlang
+robić:make
+skrobanie:scraping
+skrypty powłoki:shell scripts
+sql:sql
+sqlitesqlalchemy:sqlitesqlalchemy
+systemy operacyjne:operating systems
+sztuczna inteligencja:ai
+sztuczna inteligencja:artificial intelligence
+szybki:swift
+terminal linuksowy:linux terminal
+terminal maca:mac terminal
+terminal:terminal
+test pythona:python test
+uczenie maszynowe:machine learning
+uniks:unix
+uv:uv
+właz:hatch
+zsz:zsh

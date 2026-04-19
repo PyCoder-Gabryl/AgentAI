@@ -1,12 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-# ==========================================================================================
-#   PROJEKT:            AgentAI
-#   MODUŁ:              AgentAI/src/agentai/database.py
-#   WERSJA:             0.2 [04-19] - Added Scan History logic
-# ==========================================================================================
-
+# =============================================================================
+# AgentAI - Core Database Module
+# =============================================================================
 import os
 
 import duckdb
@@ -14,13 +8,13 @@ import duckdb
 
 class AgentDatabase:
 	def __init__(self, db_path='data/agent_knowledge.db'):
+		# Upewnij się, że folder data istnieje
 		os.makedirs(os.path.dirname(db_path), exist_ok=True)
 		self.conn = duckdb.connect(db_path)
 		self._setup_tables()
 
 	def _setup_tables(self):
-		"""Tworzy strukturę tabel. IF NOT EXISTS gwarantuje bezpieczeństwo danych."""
-		# Tabela artykułów (już ją masz, nic nie zginie)
+		"""Inicjalizacja struktury tabel."""
 		self.conn.execute("""
             CREATE TABLE IF NOT EXISTS articles (
                 url VARCHAR PRIMARY KEY,
@@ -33,8 +27,6 @@ class AgentDatabase:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
-		# NOWA TABELA: Historia skanowania (Etap 2 Roadmapy)
 		self.conn.execute("""
             CREATE TABLE IF NOT EXISTS scan_history (
                 query_key VARCHAR PRIMARY KEY, 
@@ -43,12 +35,12 @@ class AgentDatabase:
                 new_added INTEGER
             )
         """)
-		print('✅ Baza DuckDB gotowa (Artykuły + Historia).')
 
 	def add_article(self, url, title, topic, priority, source='main'):
 		try:
 			self.conn.execute(
-				"INSERT INTO articles (url, title, topic, priority, status, source_account) VALUES (?, ?, ?, ?, 'pending', ?)",
+				'INSERT INTO articles (url, title, topic, priority, status, source_account) '
+				"VALUES (?, ?, ?, ?, 'pending', ?)",
 				[url, title, topic, priority, source],
 			)
 			return True
@@ -56,7 +48,6 @@ class AgentDatabase:
 			return False
 
 	def is_already_scanned(self, query_key):
-		"""Zwraca True, jeśli ten tag/data był skanowany w ciągu ostatnich 30 dni."""
 		res = self.conn.execute(
 			"SELECT query_key FROM scan_history WHERE query_key = ? AND last_scanned > now() - interval '30 days'",
 			[query_key],
@@ -64,12 +55,8 @@ class AgentDatabase:
 		return res is not None
 
 	def mark_as_scanned(self, query_key, total_found, new_added):
-		"""Zapisuje fakt wykonania roboty."""
 		self.conn.execute(
-			'INSERT OR REPLACE INTO scan_history (query_key, last_scanned, total_found, new_added) VALUES (?, CURRENT_TIMESTAMP, ?, ?)',
+			'INSERT OR REPLACE INTO scan_history (query_key, last_scanned, total_found, new_added) '
+			'VALUES (?, CURRENT_TIMESTAMP, ?, ?)',
 			[query_key, total_found, new_added],
 		)
-
-
-if __name__ == '__main__':
-	db = AgentDatabase()

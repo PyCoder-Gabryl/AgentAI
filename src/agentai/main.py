@@ -1,24 +1,20 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# =============================================================================
+# AgentAI - Main Entry Point
+# =============================================================================
+from agentai.core.database import AgentDatabase
 
-# ==========================================================================================
-#   PROJEKT:            AgentAI
-#   MODUŁ:              AgentAI/src/agentai/main.py
-#
-#   WERSJA:             0.1 [04-18]
-#   Data utworzenia:    2026 kwiecień 18, 22:37
-#
-#   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
-#   LICENCJA:           MIT
-#
-#   AUTOR:              PyGamiQ
-#   GITHUB:             https://github.com/PyGamiQ/agentai
-#   IDE:                PyCharm Python 3.14.2 <macOS ARM>
-# ==========================================================================================
-#   OPIS:
-#       -
-#
-#   CHANGELOG:
-#       - 0.1 (18 kwi 2026)
-# ==========================================================================================
-#
+
+def main():
+	print('🤖 AgentAI System Check')
+	print('-----------------------')
+	try:
+		db = AgentDatabase()
+		count = db.conn.execute('SELECT count(*) FROM articles').fetchone()[0]
+		print(f'✅ Baza danych aktywna. Artykułów: {count}')
+		print('🚀 System gotowy do pracy.')
+	except Exception as e:
+		print(f'❌ Błąd inicjalizacji: {e}')
+
+
+if __name__ == '__main__':
+	main()
