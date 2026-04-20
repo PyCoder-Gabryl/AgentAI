@@ -16,23 +16,32 @@
 
 - [x] **Multi-Tag Loop**: Automatyczne skanowanie całej bazy pojęć (`make agent-scan-core`).
 - [x] **Archive Catch-up**: Możliwość nadrabiania historii od 2012 roku dla wybranych dat (`make agent-scan-date`).
-- [x] **Smart History**: Agent automatycznie pomija linki, które już posiada w DuckDB (ochrona przed duplikatami).
+- [x] **Smart History**: Agent automatycznie pomija linki, które już posiada w DuckDB (Live Listing & Duplicate
+  Protection).
 - [ ] **AgentAI.md (Master Control)**: Stworzenie pliku zasad w Obsidianie (protokół antyhalucynacyjny).
 - [ ] **Scraping Logs**: Rozbudowa tabeli w DuckDB o metryki sesji (ile nowych linków dodano w danej minucie).
 - [ ] **Integrity Guard**: Skrypt weryfikujący spójność bazy tagów z bazą artykułów.
 
 ---
 
-## 🧠 Faza 2: Inteligencja i Procesowanie (NASTĘPNY KROK)
+## 🧠 Faza 2: Inteligencja i Procesowanie (W TRAKCIE)
 
 *Cel: Zamiana surowych linków w polskojęzyczną wiedzę za pomocą AI.*
 
-- [x] **Ollama Orchestrator**: Automatyczne zarządzanie serwerem Ollama (On-Demand) i pobieranie modeli.
+- [x] **Ollama Orchestrator**: Automatyczne zarządzanie serwerem Ollama (On-Demand) i pobieranie modeli (`ollama.mk`).
 - [ ] **RAG Engine**: Integracja LlamaIndex z bazą wektorową (ChromaDB) dla artykułów.
-- [ ] **Auto-Translation V2**: Automatyczne tłumaczenie nagłówków i streszczeń artykułów na polski przy użyciu
-  `deep-translator`.
+- [/] **Auto-Translation V2**: Automatyczne tłumaczenie nagłówków i streszczeń artykułów na polski (Zalążek w
+  `processor.py`).
 - [ ] **Semantic Filter**: Wykorzystanie modelu LLM (np. Llama 3) do odrzucania artykułów niskiej jakości ("mięso" vs "
   lorem ipsum").
+
+- [ ] **Interactive Terminal Console**: Budowa interfejsu opartego na `gum` (szybkie klawisze, kolorowanie tagów).
+- [ ] **Hybrid AI Enrichment**:
+  - Llama 3 dla standardowych treści (lokalnie).
+  - Gemini AI API dla treści za paywallem (precyzyjne streszczenia).
+- [ ] **Adaptive Learning**: System uczenia się na podstawie usuwanych tagów i odrzucanych artykułów.
+- [ ] **Background Processing**: Możliwość uruchamiania procesora jako demona (tryb nocny).
+- [ ] **Contextual Statistics**: Liczniki artykułów per tag widoczne w czasie rzeczywistym podczas przeglądania.
 
 ---
 
@@ -67,25 +76,21 @@
 
 ---
 
-Proponowany schemat działania (The Pipeline)
-Etap 1: Ingestion (Scraper)
+### 🔄 PROPOZOWANY SCHEMAT DZIAŁANIA (The Pipeline)
 
-Zadanie: Znajdź nowe linki, tytuły i tagi.
+1. **Etap 1: Ingestion (Scraper)**
 
-Status w bazie: pending.
+- **Zadanie**: Znajdź nowe linki, tytuły i tagi.
+- **Status**: `pending`.
+- **Częstotliwość**: Kilka razy dziennie (automatycznie).
 
-Częstotliwość: Kilka razy dziennie (automatycznie).
+1. **Etap 2: Enrichment (Processor AI)**
 
-Etap 2: Enrichment (Processor AI)
+- **Zadanie**: Pobierz pełną treść, przetłumacz, wygeneruj punkty techniczne.
+- **Status**: `processed`.
+- **Częstotliwość**: Raz na dobę lub na żądanie (`make agent-process`).
 
-Zadanie: Pobierz pełną treść (jeśli potrzebna), przetłumacz, wygeneruj punkty.
+1. **Etap 3: Export (Obsidian)**
 
-Status w bazie: processed.
-
-Częstotliwość: Raz na dobę lub na żądanie (make agent-process).
-
-Etap 3: Export (Obsidian)
-
-Zadanie: Weź rekordy processed i stwórz z nich piękne notatki .md.
-
-Status w bazie: exported.
+- **Zadanie**: Konwersja rekordów `processed` na notatki `.md`.
+- **Status**: `exported`.
