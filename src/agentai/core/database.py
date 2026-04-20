@@ -68,11 +68,11 @@ class AgentDatabase:
 			)
 		""")
 
-		# System migracji — dodawanie brakujących kolumn
+		# System automatycznego dodawania kolumn do istniejącej bazy
 		existing_cols = self.conn.execute("PRAGMA table_info('articles')").fetchall()
 		col_names = [col[1] for col in existing_cols]
 
-		updates = {
+		new_fields = {
 			'content_raw': 'STRING',
 			'is_paywall': 'BOOLEAN DEFAULT FALSE',
 			'iteration': 'INTEGER DEFAULT 1',
@@ -81,7 +81,7 @@ class AgentDatabase:
 			'deleted_tags': 'STRING',
 		}
 
-		for col, dtype in updates.items():
+		for col, dtype in new_fields.items():
 			if col not in col_names:
 				self.conn.execute(f'ALTER TABLE articles ADD COLUMN {col} {dtype}')
 
@@ -112,6 +112,16 @@ class AgentDatabase:
 			"UPDATE articles SET title_pl = ?, summary_pl = ?, status = 'processed' WHERE url = ?",
 			[title_pl, summary_pl, url],
 		)
+
+	def sanitize_database(self):
+		"""Usuwa śmieciowe linki i krótkie tytuły z kolejki przetwarzania."""
+		trash_patterns = ['%/followers', '%/about', '%/lists', '%/subscribe', '%?source=%']
+		for pattern in trash_patterns:
+			self.conn.execute(
+				"UPDATE articles SET status = 'rejected' WHERE url LIKE ? AND status != 'rejected'", [pattern]
+			)
+
+		self.conn.execute("UPDATE articles SET status = 'rejected' WHERE length(title) < 10 AND status != 'rejected'")
 
 
 if __name__ == '__main__':
