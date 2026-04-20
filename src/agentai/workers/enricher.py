@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Procesor wzbogacający — Wersja Deep Scroll i lepsza diagnostyka."""
+"""Procesor wzbogacający — Wersja Hybrydowa (Twoja Metoda 1 + Skuteczny Ratunek)."""
+
+# ==========================================================================================
+#   PROJEKT:            AgentAI
+#   MODUŁ:              AgentAI/src/agentai/workers/enricher.py
+#
+#   WERSJA:             0.5 [04-21]
+#   Data utworzenia:    2026 kwiecień 19, 21:15
+#
+#   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
+#   LICENCJA:           MIT
+#
+#   AUTOR:              PyGamiQ
+#   GITHUB:             https://github.com/PyGamiQ/agentai
+# ==========================================================================================
 
 import asyncio
 import logging
-import random
 from dataclasses import dataclass
 
 import trafilatura
@@ -32,21 +45,20 @@ class ArticleEnricher:
 		html = await page.content()
 		text_traf = trafilatura.extract(html) or ''
 
-		# Rozszerzone selektory o 'div[role="presentation"]' i 'section'
 		text_native = await page.evaluate("""() => {
-			const selectors = [
-				'article p', 
-				'.pw-post-body-paragraph', 
-				'section p', 
-				'div[role="presentation"] p',
-				'p'
-			];
-			const nodes = document.querySelectorAll(selectors.join(', '));
-			return Array.from(nodes)
-				.map(n => n.innerText)
-				.filter(t => t.length > 25)
-				.join('\\n\\n');
-		}""")
+            const selectors = [
+                'article p', 
+                '.pw-post-body-paragraph', 
+                'section p', 
+                'div[role="presentation"] p',
+                'p'
+            ];
+            const nodes = document.querySelectorAll(selectors.join(', '));
+            return Array.from(nodes)
+                .map(n => n.innerText)
+                .filter(t => t.length > 25)
+                .join('\\n\\n');
+        }""")
 
 		return text_traf if len(text_traf) > len(text_native) else text_native
 
@@ -63,7 +75,6 @@ class ArticleEnricher:
 			browser = await p.chromium.launch(headless=self.config.headless)
 
 			for i, (url, title, topic) in enumerate(articles, 1):
-				# ZMIANA: "Pobieram treść" zamiast "Procesuję"
 				print(f'🚀 [{i}/{total}] Pobieram treść: {title[:50]}...')
 				print(f'   🔗 Link: {url}')
 
@@ -73,43 +84,70 @@ class ArticleEnricher:
 				page = await context.new_page()
 				await page.set_extra_http_headers({'Referer': 'https://www.google.com/'})
 
+				status = 'FAIL'
+				content = ''
+				char_count = 0
+
+				# --- PRÓBA 1: TWÓJ KOD (Podstawowy, który pobiera 1, 3, 4, 5) ---
 				try:
 					await page.goto(url, wait_until='domcontentloaded', timeout=25000)
+					try:
+						await page.wait_for_selector('article p, .pw-post-body-paragraph', timeout=5000)
+					except:
+						pass
 
-					# NOWOŚĆ: Deep Scroll — przewijamy powoli w dół i w górę
 					for _ in range(3):
 						await page.mouse.wheel(0, 800)
 						await asyncio.sleep(0.5)
-					await asyncio.sleep(random.uniform(1, 2))
 
 					content = await self._extract_content(page)
 					char_count = len(content)
 
-					if char_count > 600:
-						print(f'   ✅ Sukces! Pobrano {char_count} znaków.')
-						status = 'SUKCES'
-					else:
-						# Ostatnia szansa: czekamy jeszcze 3 sekundy, może JS doładuje treść
-						await asyncio.sleep(3)
+					if char_count < 600:  # Podniosłem próg, by nr 2 (325 zn.) na pewno wywołał ratunek
+						raise ValueError('Mało treści')
+
+				except Exception:
+					# --- PRÓBA 2: TWÓJ KOD RATUNKOWY (Który radził sobie z nr 2) ---
+					print('   ⚠️ Próba nr 1 nieudana (za mało treści lub timeout). Uruchamiam ratunek (Metoda 2)...')
+					try:
+						# Tutaj wstawiam Twój kod, który "przebija" blokadę na nr 2
+						await page.goto(url, wait_until='domcontentloaded', timeout=20000)
+						await asyncio.sleep(2)  # To jest kluczowy sleep z Twojego kodu
+
+						for _ in range(3):
+							await page.mouse.wheel(0, 800)
+							await asyncio.sleep(0.5)
+
 						content = await self._extract_content(page)
 						char_count = len(content)
-						status = 'SUKCES' if char_count > 600 else 'BLOKADA'
+					except Exception as e2:
+						print(f'   💥 Nawet ratunek zawiódł: {str(e2)[:40]}')
 
-						if status == 'SUKCES':
-							print(f'   ✅ Sukces po opóźnieniu! ({char_count} zn.)')
-						else:
-							print(f'   ❌ Zbyt krótka treść ({char_count} zn.).')
+				# Weryfikacja i zapis (Twoja logika końcowa)
+				if char_count > 600:
+					status = 'SUKCES'
+					print(f'   ✅ Sukces! Pobrano {char_count} znaków.')
+				else:
+					# Ostatnia szansa: Twoje 4s
+					await asyncio.sleep(4)
+					content = await self._extract_content(page)
+					char_count = len(content)
+					status = 'SUKCES' if char_count > 600 else 'BLOKADA'
 
-					summary_stats.append((title[:30], char_count, status))
+					if status == 'SUKCES':
+						print(f'   ✅ Sukces po opóźnieniu! ({char_count} zn.)')
+					else:
+						print(f'   ❌ Zbyt krótka treść ({char_count} zn.).')
 
-				except Exception as e:
-					print(f'   💥 Błąd: {str(e)[:50]}')
-					summary_stats.append((title[:30], 0, 'BŁĄD'))
+				is_paywall = 'Member-only story' in content or char_count < 500
+				self.db.update_article_content(url, content, status.lower(), is_paywall)
+				summary_stats.append((title[:30], char_count, status))
 
 				await context.close()
 
 			await browser.close()
 
+		# TWOJE PODSUMOWANIE
 		print('\n' + '=' * 55)
 		print(f'📊 PODSUMOWANIE SESJI ({total} artykułów)')
 		print('-' * 55)

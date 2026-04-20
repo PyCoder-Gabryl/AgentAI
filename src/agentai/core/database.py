@@ -7,7 +7,7 @@
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/core/database.py
 #
-#   WERSJA:             0.4 [04-20]
+#   WERSJA:             0.5 [04-21]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -54,6 +54,9 @@ class AgentDatabase:
 				confidence_score FLOAT DEFAULT 0.0,
 				model_name STRING,
 				deleted_tags STRING,
+				content_status STRING DEFAULT 'none',
+				char_count INTEGER DEFAULT 0,
+				content_fetched_at TIMESTAMP,
 				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 			)
 		""")
@@ -79,6 +82,9 @@ class AgentDatabase:
 			'confidence_score': 'FLOAT DEFAULT 0.0',
 			'model_name': 'STRING',
 			'deleted_tags': 'STRING',
+			'content_status': "STRING DEFAULT 'none'",
+			'char_count': 'INTEGER DEFAULT 0',
+			'content_fetched_at': 'TIMESTAMP',
 		}
 
 		for col, dtype in new_fields.items():
@@ -113,6 +119,22 @@ class AgentDatabase:
 			[title_pl, summary_pl, url],
 		)
 
+	def update_article_content(self, url, content, content_status='success', is_paywall=False):
+		"""Aktualizuje surową treść artykułu i statystyki pobierania."""
+		char_count = len(content)
+		self.conn.execute(
+			"""
+			UPDATE articles 
+			SET content_raw = ?, 
+				content_status = ?, 
+				char_count = ?, 
+				is_paywall = ?, 
+				content_fetched_at = CURRENT_TIMESTAMP 
+			WHERE url = ?
+			""",
+			[content, content_status, char_count, is_paywall, url],
+		)
+
 	def sanitize_database(self):
 		"""Usuwa śmieciowe linki i krótkie tytuły z kolejki przetwarzania."""
 		trash_patterns = ['%/followers', '%/about', '%/lists', '%/subscribe', '%?source=%']
@@ -126,4 +148,4 @@ class AgentDatabase:
 
 if __name__ == '__main__':
 	db = AgentDatabase()
-	print('✅ Baza danych AgentAI jest gotowa.')
+	print('✅ Baza danych AgentAI jest gotowa (v0.5+ pełna struktura).')
