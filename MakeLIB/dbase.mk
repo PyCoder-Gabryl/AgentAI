@@ -3,7 +3,7 @@
 # =============================================================================
 DB_PATH := data/agent_knowledge.db
 
-.PHONY: db-init db-stats db-tags db-history db-clean-trash
+.PHONY: db-init db-stats db-tags db-history db-clean-trash db-tags-stats db-inspect db-schema
 
 db-init: ## Inicjalizacja struktur bazy danych
 	@echo "🛠️ Inicjalizacja bazy..."
@@ -37,3 +37,26 @@ db-clean-trash: ## Oznacza śmieciowe linki (Rozbite linie)
 	db = AgentDatabase(); \
 	count = db.sanitize_database(); \
 	print(f'✅ Zablokowano {count} linków.')"
+
+db-schema: ## Wyświetla strukturę tabel (kolumny i typy)
+	@clear
+	@echo "🏗️  STRUKTURA TABELI: articles"
+	@duckdb $(DB_PATH) -c "PRAGMA table_info('articles');"
+	@echo "\n🏗️  STRUKTURA TABELI: scan_history"
+	@duckdb $(DB_PATH) -c "PRAGMA table_info('scan_history');"
+
+db-inspect: ## Szybki podgląd 5 ostatnich rekordów
+	@clear
+	@echo "🔍 OSTATNIE 5 REKORDÓW:"
+	@duckdb $(DB_PATH) -c "SELECT url, status, is_paywall, created_at FROM articles ORDER BY created_at DESC LIMIT 5;"
+
+db-tags-stats: ## Statystyki tagów: suma i przetworzone
+	@clear
+	@echo "🏷️  STATYSTYKI TAGÓW:"
+	@duckdb $(DB_PATH) -c "\
+		SELECT topic, \
+		count(*) as total, \
+		count(CASE WHEN status='processed' THEN 1 END) as proc \
+		FROM articles \
+		GROUP BY topic \
+		ORDER BY total DESC;"

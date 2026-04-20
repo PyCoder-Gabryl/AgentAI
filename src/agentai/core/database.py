@@ -7,7 +7,7 @@
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/core/database.py
 #
-#   WERSJA:             0.3 [04-19]
+#   WERSJA:             0.4 [04-20]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -34,62 +34,63 @@ class AgentDatabase:
 		"""Inicjalizuje bazę danych i przeprowadza migrację tabel."""
 		os.makedirs(os.path.dirname(db_path), exist_ok=True)
 		self.conn = duckdb.connect(db_path)
-		self._setup_tables()
-		self._migrate_tables()
+		self._migrate_schema()
 
-	def _setup_tables(self):
-		"""Inicjalizuje strukturę tabel artykułów i historii skanowania."""
+	def _migrate_schema(self):
+		"""Tworzy tabele lub dodaje brakujące kolumny (migracja)."""
+		# 1. Główna tabela artykułów
 		self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS articles (
-                url VARCHAR PRIMARY KEY,
-                title VARCHAR,
-                topic VARCHAR,
-                priority INTEGER,
-                status VARCHAR DEFAULT 'pending',
-                content_summary TEXT,
-                title_pl VARCHAR,
-                summary_pl TEXT,
-                source_account VARCHAR,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-		self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS scan_history (
-                query_key VARCHAR PRIMARY KEY,
-                last_scanned TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                total_found INTEGER,
-                new_added INTEGER
-            )
-        """)
-
-	def _migrate_tables(self):
-		"""Dodaje brakujące kolumny do istniejącej tabeli artykułów."""
-		columns_info = self.conn.execute("PRAGMA table_info('articles')").fetchall()
-		column_names = [col[1] for col in columns_info]
-
-		if 'title_pl' not in column_names:
-			self.conn.execute('ALTER TABLE articles ADD COLUMN title_pl VARCHAR')
-		if 'summary_pl' not in column_names:
-			self.conn.execute('ALTER TABLE articles ADD COLUMN summary_pl TEXT')
-		if 'status' not in column_names:
-			self.conn.execute("ALTER TABLE articles ADD COLUMN status VARCHAR DEFAULT 'pending'")
-
-	def add_article(self, url, title, topic, status='pending', source='unknown'):
-		"""Dodaje artykuł do bazy, ignorując duplikaty URL."""
-		try:
-			self.conn.execute(
-				'INSERT OR IGNORE INTO articles (url, title, topic, status, source_account) VALUES (?, ?, ?, ?, ?)',
-				[url, title, topic, status, source],
+			CREATE TABLE IF NOT EXISTS articles (
+				url STRING PRIMARY KEY,
+				title STRING,
+				title_pl STRING,
+				summary_pl STRING,
+				content_raw STRING,
+				topic STRING,
+				status STRING DEFAULT 'pending',
+				source STRING,
+				is_paywall BOOLEAN DEFAULT FALSE,
+				iteration INTEGER DEFAULT 1,
+				confidence_score FLOAT DEFAULT 0.0,
+				model_name STRING,
+				deleted_tags STRING,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 			)
-			res = self.conn.execute('SELECT changes()').fetchone()
-			return res[0] > 0 if res else False
-		except duckdb.Error:
-			return False
+		""")
 
-	def is_already_scanned(self, query_key):
-		"""Sprawdza, czy dany tag był już skanowany."""
-		res = self.conn.execute('SELECT query_key FROM scan_history WHERE query_key = ?', [query_key]).fetchone()
-		return res is not None
+		# 2. Historia skanowania
+		self.conn.execute("""
+			CREATE TABLE IF NOT EXISTS scan_history (
+				query_key STRING PRIMARY KEY,
+				last_scanned TIMESTAMP,
+				total_found INTEGER,
+				new_added INTEGER
+			)
+		""")
+
+		# System migracji — dodawanie brakujących kolumn
+		existing_cols = self.conn.execute("PRAGMA table_info('articles')").fetchall()
+		col_names = [col[1] for col in existing_cols]
+
+		updates = {
+			'content_raw': 'STRING',
+			'is_paywall': 'BOOLEAN DEFAULT FALSE',
+			'iteration': 'INTEGER DEFAULT 1',
+			'confidence_score': 'FLOAT DEFAULT 0.0',
+			'model_name': 'STRING',
+			'deleted_tags': 'STRING',
+		}
+
+		for col, dtype in updates.items():
+			if col not in col_names:
+				self.conn.execute(f'ALTER TABLE articles ADD COLUMN {col} {dtype}')
+
+	def add_article(self, url, title, topic=None, status='pending', source=None):
+		"""Dodaje nowy artykuł, ignorując duplikaty URL."""
+		self.conn.execute(
+			'INSERT OR IGNORE INTO articles (url, title, topic, status, source) VALUES (?, ?, ?, ?, ?)',
+			[url, title, topic, status, source],
+		)
 
 	def mark_as_scanned(self, query_key, total_found, new_added):
 		"""Zapisuje wynik skanowania w historii."""
@@ -112,20 +113,7 @@ class AgentDatabase:
 			[title_pl, summary_pl, url],
 		)
 
-	def sanitize_database(self):
-		"""Usuwa śmieciowe linki i krótkie tytuły z kolejki przetwarzania."""
-		trash_patterns = ['%/followers', '%/about', '%/lists', '%/subscribe', '%?source=%']
-		for pattern in trash_patterns:
-			self.conn.execute(
-				"UPDATE articles SET status = 'rejected' WHERE url LIKE ? AND status != 'rejected'", [pattern]
-			)
-
-		self.conn.execute("UPDATE articles SET status = 'rejected' WHERE length(title) < 10 AND status != 'rejected'")
-		res = self.conn.execute("SELECT count() FROM articles WHERE status = 'rejected'").fetchone()
-		return res[0] if res else 0
-
 
 if __name__ == '__main__':
 	db = AgentDatabase()
-	db.sanitize_database()
-	print('✅ Baza danych AgentAI gotowa do pracy.')
+	print('✅ Baza danych AgentAI jest gotowa.')
