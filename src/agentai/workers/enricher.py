@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Procesor wzbogacający — Wersja Przywrócona (100% Skuteczności)."""
+"""Procesor wzbogacający — Wersja Full Markdown (Bezpieczny Odczyt)."""
 
 # ==========================================================================================
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/workers/enricher.py
 #
-#   WERSJA:             0.5 [04-21]
+#   WERSJA:             0.7 [04-21]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
 #   LICENCJA:           MIT
 #
 #   AUTOR:              PyGamiQ
-#   GITHUB:             https://github.com/PyGamiQ/agentai
+#   GITHUB:             [https://github.com/PyGamiQ/agentai](https://github.com/PyGamiQ/agentai)
 # ==========================================================================================
 
 import asyncio
@@ -41,31 +41,62 @@ class ArticleEnricher:
 		self.logger = logging.getLogger('AgentAI.Enricher')
 
 	async def _extract_content(self, page) -> str:
-		"""Ekstrakcja treści: Najpierw Markdown, potem Twoje sprawdzone selektory."""
+		"""Ekstrakcja: Trafilatura (Priorytet) -> Bezpieczny JS Markdown (Gwarancja)."""
 		html = await page.content()
 
-		# 1. Próba Trafilatura (jeśli zadziała, mamy Markdown z linkami)
-		text_traf = trafilatura.extract(html, include_formatting=True, output_format='markdown') or ''
+		# 1. Próba Trafilatura (automatyczny, bogaty Markdown)
+		text_md = (
+			trafilatura.extract(
+				html, include_formatting=True, include_links=True, include_images=True, output_format='markdown'
+			)
+			or ''
+		)
 
-		# 2. TWOJE SELEKTORY (Gwarancja pobrania treści na 14k znaków)
-		# Używamy ich, jeśli Trafilatura zwróciła ochłapy
-		if len(text_traf) < 800:
+		# 2. TWOJE PANCERNE SELEKTORY (Z upgreadem do Markdowna!)
+		if len(text_md) < 800:
 			return await page.evaluate("""() => {
-                const selectors = [
-                    'article p', 
-                    '.pw-post-body-paragraph', 
-                    'section p', 
-                    'div[role="presentation"] p',
-                    'p'
-                ];
-                const nodes = document.querySelectorAll(selectors.join(', '));
-                return Array.from(nodes)
-                    .map(n => n.innerText)
-                    .filter(t => t.length > 25)
-                    .join('\\n\\n');
-           }""")
+             const container = document.querySelector('article') || document.body;
+             // Wyciągamy tylko konkretne tagi
+             const elements = container.querySelectorAll('h1, h2, h3, p, pre, img');
+             let result = [];
 
-		return text_traf
+             for (let el of elements) {
+                 let tag = el.tagName.toLowerCase();
+                 let text = el.innerText ? el.innerText.trim() : '';
+
+                 // Nagłówki
+                 if (tag === 'h1' && text) result.push('# ' + text);
+                 else if (tag === 'h2' && text) result.push('## ' + text);
+                 else if (tag === 'h3' && text) result.push('### ' + text);
+
+                 // Bloki kodu
+                 else if (tag === 'pre' && text) result.push('```\\n' + text + '\\n```');
+
+                 // Obrazki (tylko główne grafiki, ignorujemy małe ikonki)
+                 else if (tag === 'img' && el.src) {
+                     if (el.width > 100 || el.src.includes('[miro.medium.com/v2/resize](https://miro.medium.com/v2/resize)')) {
+                         result.push('![grafika](' + el.src + ')');
+                     }
+                 }
+
+                 // Paragrafy z linkami
+                 else if (tag === 'p' && text.length > 25) {
+                     let pText = text;
+                     // Bezpieczne wklejanie linków bez niszczenia DOM
+                     const links = el.querySelectorAll('a');
+                     links.forEach(a => {
+                         const linkText = a.innerText.trim();
+                         if (linkText && pText.includes(linkText)) {
+                              pText = pText.replace(linkText, `[${linkText}](${a.href})`);
+                         }
+                     });
+                     result.push(pText);
+                 }
+             }
+             return result.join('\\n\\n');
+          }""")
+
+		return text_md
 
 	async def run_batch(self):
 		articles = self.db.get_pending_articles(limit=self.config.batch_size)
@@ -87,13 +118,13 @@ class ArticleEnricher:
 					user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
 				)
 				page = await context.new_page()
-				await page.set_extra_http_headers({'Referer': 'https://www.google.com/'})
+				await page.set_extra_http_headers({'Referer': '[https://www.google.com/](https://www.google.com/)'})
 
 				status = 'FAIL'
 				content = ''
 				char_count = 0
 
-				# --- PRÓBA 1: TWOJA METODA 1 ---
+				# --- PRÓBA 1: STANDARDOWA ---
 				try:
 					await page.goto(url, wait_until='domcontentloaded', timeout=25000)
 					try:
@@ -115,7 +146,7 @@ class ArticleEnricher:
 					print(f'   ✅ Metoda 1: Sukces! ({char_count} zn.)')
 
 				except Exception:
-					# --- PRÓBA 2: TWOJA METODA RATUNKOWA (Ta, która dawała 14k zn.) ---
+					# --- PRÓBA 2: RATUNEK ---
 					print('   ⚠️ Metoda 1 nieudana. Uruchamiam ratunek (Metoda 2)...')
 					try:
 						await page.goto(url, wait_until='domcontentloaded', timeout=20000)
@@ -132,7 +163,6 @@ class ArticleEnricher:
 							status = 'SUKCES'
 							print(f'   ✅ Metoda 2: Sukces! ({char_count} zn.)')
 						else:
-							# Ostatnia szansa: Twoje 4s
 							await asyncio.sleep(4)
 							content = await self._extract_content(page)
 							char_count = len(content)
