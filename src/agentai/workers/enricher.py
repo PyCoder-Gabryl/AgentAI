@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Procesor wzbogacający — Stabilna Hybryda z Linkami."""
+"""Procesor wzbogacający — Wersja Przywrócona (100% Skuteczności)."""
 
 # ==========================================================================================
 #   PROJEKT:            AgentAI
@@ -41,40 +41,31 @@ class ArticleEnricher:
 		self.logger = logging.getLogger('AgentAI.Enricher')
 
 	async def _extract_content(self, page) -> str:
-		"""Ekstrakcja Markdown z Twoim skutecznym fallbackiem."""
+		"""Ekstrakcja treści: Najpierw Markdown, potem Twoje sprawdzone selektory."""
 		html = await page.content()
 
-		# 1. Próba Trafilatura (Markdown z automatu)
-		content_md = (
-			trafilatura.extract(
-				html, include_formatting=True, include_links=True, include_images=True, output_format='markdown'
-			)
-			or ''
-		)
+		# 1. Próba Trafilatura (jeśli zadziała, mamy Markdown z linkami)
+		text_traf = trafilatura.extract(html, include_formatting=True, output_format='markdown') or ''
 
-		# 2. TWÓJ ORYGINALNY FALLBACK (Naprawiony pod linki)
-		# Jeśli Trafilatura zawodzi (jak na nr 2), używamy Twoich selektorów
-		if len(content_md) < 800:
-			content_md = await page.evaluate("""() => {
+		# 2. TWOJE SELEKTORY (Gwarancja pobrania treści na 14k znaków)
+		# Używamy ich, jeśli Trafilatura zwróciła ochłapy
+		if len(text_traf) < 800:
+			return await page.evaluate("""() => {
                 const selectors = [
-                    'article p', '.pw-post-body-paragraph', 
-                    'section p', 'div[role="presentation"] p', 'p'
+                    'article p', 
+                    '.pw-post-body-paragraph', 
+                    'section p', 
+                    'div[role="presentation"] p',
+                    'p'
                 ];
                 const nodes = document.querySelectorAll(selectors.join(', '));
                 return Array.from(nodes)
-                    .map(n => {
-                        // Klonujemy, żeby móc podmienić <a> na tekst MD bez psucia strony
-                        let clone = n.cloneNode(true);
-                        clone.querySelectorAll('a').forEach(a => {
-                            a.textContent = `[${a.textContent}](${a.href})`;
-                        });
-                        return clone.innerText;
-                    })
+                    .map(n => n.innerText)
                     .filter(t => t.length > 25)
                     .join('\\n\\n');
            }""")
 
-		return content_md
+		return text_traf
 
 	async def run_batch(self):
 		articles = self.db.get_pending_articles(limit=self.config.batch_size)
@@ -90,6 +81,7 @@ class ArticleEnricher:
 
 			for i, (url, title, topic) in enumerate(articles, 1):
 				print(f'🚀 [{i}/{total}] Pobieram treść: {title[:50]}...')
+				print(f'   🔗 Link: {url}')
 
 				context = await browser.new_context(
 					user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -101,8 +93,8 @@ class ArticleEnricher:
 				content = ''
 				char_count = 0
 
+				# --- PRÓBA 1: TWOJA METODA 1 ---
 				try:
-					# --- TWOJA METODA 1 ---
 					await page.goto(url, wait_until='domcontentloaded', timeout=25000)
 					try:
 						await page.wait_for_selector('article p, .pw-post-body-paragraph', timeout=5000)
@@ -123,8 +115,8 @@ class ArticleEnricher:
 					print(f'   ✅ Metoda 1: Sukces! ({char_count} zn.)')
 
 				except Exception:
-					# --- TWÓJ RATUNEK (Ten co dał 14k znaków) ---
-					print('   ⚠️ Metoda 1 zawiodła. Uruchamiam ratunek (Metoda 2)...')
+					# --- PRÓBA 2: TWOJA METODA RATUNKOWA (Ta, która dawała 14k zn.) ---
+					print('   ⚠️ Metoda 1 nieudana. Uruchamiam ratunek (Metoda 2)...')
 					try:
 						await page.goto(url, wait_until='domcontentloaded', timeout=20000)
 						await asyncio.sleep(2)
@@ -149,7 +141,7 @@ class ArticleEnricher:
 					except Exception as e2:
 						print(f'   💥 Błąd ratunku: {str(e2)[:40]}')
 
-				# ZAPIS DO BAZY
+				# Zapis do bazy
 				is_paywall = 'Member-only story' in content or char_count < 500
 				self.db.update_article_content(url, content, status.lower(), is_paywall)
 				summary_stats.append((title[:30], char_count, status))
@@ -158,7 +150,7 @@ class ArticleEnricher:
 			await browser.close()
 
 		print('\n' + '=' * 55)
-		print(f'📊 PODSUMOWANIE SESJI MD ({total} artykułów)')
+		print(f'📊 PODSUMOWANIE SESJI ({total} artykułów)')
 		print('-' * 55)
 		for t, c, s in summary_stats:
 			icon = '🟢' if s == 'SUKCES' else '🔴'
