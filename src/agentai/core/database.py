@@ -7,7 +7,7 @@
 #   PROJEKT:            AgentAI
 #   MODUŁ:              AgentAI/src/agentai/core/database.py
 #
-#   WERSJA:             0.5 [04-21]
+#   WERSJA:             0.5.1 [04-21]
 #   Data utworzenia:    2026 kwiecień 19, 21:15
 #
 #   COPYRIGHT:          2026 PyGamiQ <pygamiq@gmail.com>
@@ -16,10 +16,6 @@
 #   AUTOR:              PyGamiQ
 #   GITHUB:             https://github.com/PyGamiQ/agentai
 #   IDE:                PyCharm Python 3.14.2 <macOS ARM>
-# ==========================================================================================
-#   OPIS:
-#       Rdzeń systemu bazodanowego oparty na DuckDB. Zarządza tabelami artykułów,
-#       historią skanowania oraz migracjami schematu (obsługa statusów i wersji PL).
 # ==========================================================================================
 
 import os
@@ -40,36 +36,36 @@ class AgentDatabase:
 		"""Tworzy tabele lub dodaje brakujące kolumny (migracja)."""
 		# 1. Główna tabela artykułów
 		self.conn.execute("""
-			CREATE TABLE IF NOT EXISTS articles (
-				url STRING PRIMARY KEY,
-				title STRING,
-				title_pl STRING,
-				summary_pl STRING,
-				content_raw STRING,
-				topic STRING,
-				status STRING DEFAULT 'pending',
-				source STRING,
-				is_paywall BOOLEAN DEFAULT FALSE,
-				iteration INTEGER DEFAULT 1,
-				confidence_score FLOAT DEFAULT 0.0,
-				model_name STRING,
-				deleted_tags STRING,
-				content_status STRING DEFAULT 'none',
-				char_count INTEGER DEFAULT 0,
-				content_fetched_at TIMESTAMP,
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			)
-		""")
+          CREATE TABLE IF NOT EXISTS articles (
+             url STRING PRIMARY KEY,
+             title STRING,
+             title_pl STRING,
+             summary_pl STRING,
+             content_raw STRING,
+             topic STRING,
+             status STRING DEFAULT 'pending',
+             source STRING,
+             is_paywall BOOLEAN DEFAULT FALSE,
+             iteration INTEGER DEFAULT 1,
+             confidence_score FLOAT DEFAULT 0.0,
+             model_name STRING,
+             deleted_tags STRING,
+             content_status STRING DEFAULT 'none',
+             char_count INTEGER DEFAULT 0,
+             content_fetched_at TIMESTAMP,
+             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+       """)
 
 		# 2. Historia skanowania
 		self.conn.execute("""
-			CREATE TABLE IF NOT EXISTS scan_history (
-				query_key STRING PRIMARY KEY,
-				last_scanned TIMESTAMP,
-				total_found INTEGER,
-				new_added INTEGER
-			)
-		""")
+          CREATE TABLE IF NOT EXISTS scan_history (
+             query_key STRING PRIMARY KEY,
+             last_scanned TIMESTAMP,
+             total_found INTEGER,
+             new_added INTEGER
+          )
+       """)
 
 		# System automatycznego dodawania kolumn do istniejącej bazy
 		existing_cols = self.conn.execute("PRAGMA table_info('articles')").fetchall()
@@ -107,9 +103,15 @@ class AgentDatabase:
 		)
 
 	def get_pending_articles(self, limit=10):
-		"""Pobiera listę artykułów oznaczonych jako pending."""
+		"""Pobiera listę artykułów pending, które nie mają jeszcze treści (Pancerne)."""
 		return self.conn.execute(
-			"SELECT url, title, topic FROM articles WHERE status = 'pending' LIMIT ?", [limit]
+			"""
+            SELECT url, title, topic FROM articles 
+            WHERE status = 'pending' 
+            AND (content_raw IS NULL OR length(content_raw) < 10)
+            LIMIT ?
+            """,
+			[limit],
 		).fetchall()
 
 	def update_full_article(self, url, title_pl, summary_pl):
@@ -120,18 +122,19 @@ class AgentDatabase:
 		)
 
 	def update_article_content(self, url, content, content_status='success', is_paywall=False):
-		"""Aktualizuje surową treść artykułu i statystyki pobierania."""
+		"""Aktualizuje surową treść i zmienia status na 'enriched', by nie pobierać ponownie."""
 		char_count = len(content)
 		self.conn.execute(
 			"""
-			UPDATE articles 
-			SET content_raw = ?, 
-				content_status = ?, 
-				char_count = ?, 
-				is_paywall = ?, 
-				content_fetched_at = CURRENT_TIMESTAMP 
-			WHERE url = ?
-			""",
+            UPDATE articles 
+            SET content_raw = ?, 
+               content_status = ?, 
+               status = 'enriched', 
+               char_count = ?, 
+               is_paywall = ?, 
+               content_fetched_at = CURRENT_TIMESTAMP 
+            WHERE url = ?
+            """,
 			[content, content_status, char_count, is_paywall, url],
 		)
 
@@ -148,4 +151,4 @@ class AgentDatabase:
 
 if __name__ == '__main__':
 	db = AgentDatabase()
-	print('✅ Baza danych AgentAI jest gotowa (v0.5+ pełna struktura).')
+	print('✅ Baza danych AgentAI jest gotowa (v0.5.1 poprawka statusów).')
